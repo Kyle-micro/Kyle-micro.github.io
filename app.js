@@ -20,8 +20,32 @@ document.getElementById('submitDate').addEventListener('click', function() {
         );
     } else {
         alert('請選擇一個日期');
-    }
+    }    
 });
+
+function playDates(interval) {
+    let currentDate = new Date(document.getElementById("datePicker").value);
+    const endDate = new Date("2022-11-27");
+
+    const timer = setInterval(() => {
+        if (currentDate <= endDate) {
+            const formattedDate = currentDate.toISOString().slice(0, 10);
+            const targetHtml = formattedDate.split("-").join("-") + ".html";
+            window.open(targetHtml, "_blank");
+
+            currentDate.setDate(currentDate.getDate() + 1);
+            document.getElementById("datePicker").value = formattedDate;
+        } else {
+            clearInterval(timer);
+        }
+    }, interval);
+}
+
+document.getElementById("playDates").addEventListener("click", function () {
+    const interval = 1000; // 時間間隔，以毫秒為單位，您可以根據需要調整此值
+    playDates(interval);
+});
+
 
 
 
