@@ -6,21 +6,16 @@ document.getElementById('submitDate').addEventListener('click', function() {
         const formattedDate = selectedDate.split('-').join('-');
         const targetHtml = 'Network_html/' + formattedDate + '.html';
 
+        // 使用iframe載入HTML
+        const iframe = document.createElement('iframe');
+        iframe.src = targetHtml;
+        iframe.width = '100%';
+        iframe.height = '100%';
+        iframe.style.border = 'none';
 
-        fetch(targetHtml)
-            .then(response => {
-                if (response.ok) {
-                    return response.text();
-                } else {
-                    throw new Error('找不到指定日期的檔案');
-                }
-            })
-            .then(html => {
-                document.getElementById('content').innerHTML = html;
-            })
-            .catch(error => {
-                alert(error.message);
-            });
+        const content = document.getElementById('content');
+        content.innerHTML = '';
+        content.appendChild(iframe);
     } else {
         alert('請選擇一個日期');
     }
