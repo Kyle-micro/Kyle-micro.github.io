@@ -23,6 +23,7 @@ document.getElementById('submitDate').addEventListener('click', function() {
     }    
 });
 
+/*
 function playDates(interval) {
     let currentDate = new Date(document.getElementById("datePicker").value);
     const endDate = new Date("2022-11-27");
@@ -46,7 +47,4 @@ document.getElementById("playDates").addEventListener("click", function () {
     const interval = 1000; // 時間間隔，以毫秒為單位，您可以根據需要調整此值
     playDates(interval);
 });
-
-
-
-
+*/
