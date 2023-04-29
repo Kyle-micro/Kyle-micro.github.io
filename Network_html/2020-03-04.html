@@ -1,0 +1,963 @@
+<html>
+    <head>
+        <meta charset="utf-8">
+        
+            <script>function neighbourhoodHighlight(params) {
+  // console.log("in nieghbourhoodhighlight");
+  allNodes = nodes.get({ returnType: "Object" });
+  // originalNodes = JSON.parse(JSON.stringify(allNodes));
+  // if something is selected:
+  if (params.nodes.length > 0) {
+    highlightActive = true;
+    var i, j;
+    var selectedNode = params.nodes[0];
+    var degrees = 2;
+
+    // mark all nodes as hard to read.
+    for (let nodeId in allNodes) {
+      // nodeColors[nodeId] = allNodes[nodeId].color;
+      allNodes[nodeId].color = "rgba(200,200,200,0.5)";
+      if (allNodes[nodeId].hiddenLabel === undefined) {
+        allNodes[nodeId].hiddenLabel = allNodes[nodeId].label;
+        allNodes[nodeId].label = undefined;
+      }
+    }
+    var connectedNodes = network.getConnectedNodes(selectedNode);
+    var allConnectedNodes = [];
+
+    // get the second degree nodes
+    for (i = 1; i < degrees; i++) {
+      for (j = 0; j < connectedNodes.length; j++) {
+        allConnectedNodes = allConnectedNodes.concat(
+          network.getConnectedNodes(connectedNodes[j])
+        );
+      }
+    }
+
+    // all second degree nodes get a different color and their label back
+    for (i = 0; i < allConnectedNodes.length; i++) {
+      // allNodes[allConnectedNodes[i]].color = "pink";
+      allNodes[allConnectedNodes[i]].color = "rgba(150,150,150,0.75)";
+      if (allNodes[allConnectedNodes[i]].hiddenLabel !== undefined) {
+        allNodes[allConnectedNodes[i]].label =
+          allNodes[allConnectedNodes[i]].hiddenLabel;
+        allNodes[allConnectedNodes[i]].hiddenLabel = undefined;
+      }
+    }
+
+    // all first degree nodes get their own color and their label back
+    for (i = 0; i < connectedNodes.length; i++) {
+      // allNodes[connectedNodes[i]].color = undefined;
+      allNodes[connectedNodes[i]].color = nodeColors[connectedNodes[i]];
+      if (allNodes[connectedNodes[i]].hiddenLabel !== undefined) {
+        allNodes[connectedNodes[i]].label =
+          allNodes[connectedNodes[i]].hiddenLabel;
+        allNodes[connectedNodes[i]].hiddenLabel = undefined;
+      }
+    }
+
+    // the main node gets its own color and its label back.
+    // allNodes[selectedNode].color = undefined;
+    allNodes[selectedNode].color = nodeColors[selectedNode];
+    if (allNodes[selectedNode].hiddenLabel !== undefined) {
+      allNodes[selectedNode].label = allNodes[selectedNode].hiddenLabel;
+      allNodes[selectedNode].hiddenLabel = undefined;
+    }
+  } else if (highlightActive === true) {
+    // console.log("highlightActive was true");
+    // reset all nodes
+    for (let nodeId in allNodes) {
+      // allNodes[nodeId].color = "purple";
+      allNodes[nodeId].color = nodeColors[nodeId];
+      // delete allNodes[nodeId].color;
+      if (allNodes[nodeId].hiddenLabel !== undefined) {
+        allNodes[nodeId].label = allNodes[nodeId].hiddenLabel;
+        allNodes[nodeId].hiddenLabel = undefined;
+      }
+    }
+    highlightActive = false;
+  }
+
+  // transform the object into an array
+  var updateArray = [];
+  if (params.nodes.length > 0) {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        // console.log(allNodes[nodeId]);
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  } else {
+    // console.log("Nothing was selected");
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        // console.log(allNodes[nodeId]);
+        // allNodes[nodeId].color = {};
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  }
+}
+
+function filterHighlight(params) {
+  allNodes = nodes.get({ returnType: "Object" });
+  // if something is selected:
+  if (params.nodes.length > 0) {
+    filterActive = true;
+    let selectedNodes = params.nodes;
+
+    // hiding all nodes and saving the label
+    for (let nodeId in allNodes) {
+      allNodes[nodeId].hidden = true;
+      if (allNodes[nodeId].savedLabel === undefined) {
+        allNodes[nodeId].savedLabel = allNodes[nodeId].label;
+        allNodes[nodeId].label = undefined;
+      }
+    }
+
+    for (let i=0; i < selectedNodes.length; i++) {
+      allNodes[selectedNodes[i]].hidden = false;
+      if (allNodes[selectedNodes[i]].savedLabel !== undefined) {
+        allNodes[selectedNodes[i]].label = allNodes[selectedNodes[i]].savedLabel;
+        allNodes[selectedNodes[i]].savedLabel = undefined;
+      }
+    }
+
+  } else if (filterActive === true) {
+    // reset all nodes
+    for (let nodeId in allNodes) {
+      allNodes[nodeId].hidden = false;
+      if (allNodes[nodeId].savedLabel !== undefined) {
+        allNodes[nodeId].label = allNodes[nodeId].savedLabel;
+        allNodes[nodeId].savedLabel = undefined;
+      }
+    }
+    filterActive = false;
+  }
+
+  // transform the object into an array
+  var updateArray = [];
+  if (params.nodes.length > 0) {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  } else {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  }
+}
+
+function selectNode(nodes) {
+  network.selectNodes(nodes);
+  neighbourhoodHighlight({ nodes: nodes });
+  return nodes;
+}
+
+function selectNodes(nodes) {
+  network.selectNodes(nodes);
+  filterHighlight({nodes: nodes});
+  return nodes;
+}
+
+function highlightFilter(filter) {
+  let selectedNodes = []
+  let selectedProp = filter['property']
+  if (filter['item'] === 'node') {
+    let allNodes = nodes.get({ returnType: "Object" });
+    for (let nodeId in allNodes) {
+      if (allNodes[nodeId][selectedProp] && filter['value'].includes((allNodes[nodeId][selectedProp]).toString())) {
+        selectedNodes.push(nodeId)
+      }
+    }
+  }
+  else if (filter['item'] === 'edge'){
+    let allEdges = edges.get({returnType: 'object'});
+    // check if the selected property exists for selected edge and select the nodes connected to the edge
+    for (let edge in allEdges) {
+      if (allEdges[edge][selectedProp] && filter['value'].includes((allEdges[edge][selectedProp]).toString())) {
+        selectedNodes.push(allEdges[edge]['from'])
+        selectedNodes.push(allEdges[edge]['to'])
+      }
+    }
+  }
+  selectNodes(selectedNodes)
+}</script>
+            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/dist/vis-network.min.css" integrity="sha512-WgxfT5LWjfszlPHXRmBWHkV2eceiWTOBvrKCNbdgDYTHrT2AeLCGbF4sZlZw3UMN3WtL0tGUoIAKsu8mllg/XA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/vis-network.min.js" integrity="sha512-LnvoEWDFrqGHlHmDD2101OrLcbsfkrzoSpvtSQtxK3RMnRV0eOkhhBN2dXHKRrUU8p2DGRTk35n4O8nWSVe1mQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+            
+            
+            
+            
+            
+            
+                <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tom-select/2.0.0-rc.4/css/tom-select.min.css" integrity="sha512-43fHB3GLgZfz8QXl1RPQ8O66oIgv3po9cJ5erMt1c4QISq9dYb195T3vr5ImnJPXuVroKcGBPXBFKETW8jrPNQ==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+                <script src="https://cdnjs.cloudflare.com/ajax/libs/tom-select/2.0.0-rc.4/js/tom-select.complete.js" integrity="sha512-jeF9CfnvzDiw9G9xiksVjxR2lib44Gnovvkv+3CgCG6NXCD4gqlA5nDAVW5WjpA+i+/zKsUWV5xNEbW1X/HH0Q==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+            
+
+        
+<center>
+<h1></h1>
+</center>
+
+<!-- <link rel="stylesheet" href="../node_modules/vis/dist/vis.min.css" type="text/css" />
+<script type="text/javascript" src="../node_modules/vis/dist/vis.js"> </script>-->
+        <link
+          href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/css/bootstrap.min.css"
+          rel="stylesheet"
+          integrity="sha384-eOJMYsd53ii+scO/bJGFsiCZc+5NDVN2yr8+0RDqr0Ql0h+rP48ckxlpbzKgwra6"
+          crossorigin="anonymous"
+        />
+        <script
+          src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/js/bootstrap.bundle.min.js"
+          integrity="sha384-JEW9xMcG8R+pH31jmWH6WWP0WintQrMb4s7ZOdauHnUtxwoG2vI5DkLtS3qm9Ekf"
+          crossorigin="anonymous"
+        ></script>
+
+
+        <center>
+          <h1></h1>
+        </center>
+        <style type="text/css">
+
+             #mynetwork {
+                 width: 100%;
+                 height: 700px;
+                 background-color: #222222;
+                 border: 1px solid lightgray;
+                 position: relative;
+                 float: left;
+             }
+
+             
+             #loadingBar {
+                 position:absolute;
+                 top:0px;
+                 left:0px;
+                 width: 100%;
+                 height: 700px;
+                 background-color:rgba(200,200,200,0.8);
+                 -webkit-transition: all 0.5s ease;
+                 -moz-transition: all 0.5s ease;
+                 -ms-transition: all 0.5s ease;
+                 -o-transition: all 0.5s ease;
+                 transition: all 0.5s ease;
+                 opacity:1;
+             }
+
+             #bar {
+                 position:absolute;
+                 top:0px;
+                 left:0px;
+                 width:20px;
+                 height:20px;
+                 margin:auto auto auto auto;
+                 border-radius:11px;
+                 border:2px solid rgba(30,30,30,0.05);
+                 background: rgb(0, 173, 246); /* Old browsers */
+                 box-shadow: 2px 0px 4px rgba(0,0,0,0.4);
+             }
+
+             #border {
+                 position:absolute;
+                 top:10px;
+                 left:10px;
+                 width:500px;
+                 height:23px;
+                 margin:auto auto auto auto;
+                 box-shadow: 0px 0px 4px rgba(0,0,0,0.2);
+                 border-radius:10px;
+             }
+
+             #text {
+                 position:absolute;
+                 top:8px;
+                 left:530px;
+                 width:30px;
+                 height:50px;
+                 margin:auto auto auto auto;
+                 font-size:22px;
+                 color: #000000;
+             }
+
+             div.outerBorder {
+                 position:relative;
+                 top:400px;
+                 width:600px;
+                 height:44px;
+                 margin:auto auto auto auto;
+                 border:8px solid rgba(0,0,0,0.1);
+                 background: rgb(252,252,252); /* Old browsers */
+                 background: -moz-linear-gradient(top,  rgba(252,252,252,1) 0%, rgba(237,237,237,1) 100%); /* FF3.6+ */
+                 background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,rgba(252,252,252,1)), color-stop(100%,rgba(237,237,237,1))); /* Chrome,Safari4+ */
+                 background: -webkit-linear-gradient(top,  rgba(252,252,252,1) 0%,rgba(237,237,237,1) 100%); /* Chrome10+,Safari5.1+ */
+                 background: -o-linear-gradient(top,  rgba(252,252,252,1) 0%,rgba(237,237,237,1) 100%); /* Opera 11.10+ */
+                 background: -ms-linear-gradient(top,  rgba(252,252,252,1) 0%,rgba(237,237,237,1) 100%); /* IE10+ */
+                 background: linear-gradient(to bottom,  rgba(252,252,252,1) 0%,rgba(237,237,237,1) 100%); /* W3C */
+                 filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#fcfcfc', endColorstr='#ededed',GradientType=0 ); /* IE6-9 */
+                 border-radius:72px;
+                 box-shadow: 0px 0px 10px rgba(0,0,0,0.2);
+             }
+             
+
+             
+
+             
+        </style>
+    </head>
+
+
+    <body>
+        <div class="card" style="width: 100%">
+            
+                <div id="select-menu" class="card-header">
+                    <div class="row no-gutters">
+                        <div class="col-10 pb-2">
+                            <select
+                            class="form-select"
+                            aria-label="Default select example"
+                            onchange="selectNode([value]);"
+                            id="select-node"
+                            placeholder="Select node..."
+                            >
+                                <option selected>Select a Node by ID</option>
+                                
+                                    <option value="0x">0x</option>
+                                
+                                    <option value="Aeternity">Aeternity</option>
+                                
+                                    <option value="Basic Attention Token">Basic Attention Token</option>
+                                
+                                    <option value="Bitcoin">Bitcoin</option>
+                                
+                                    <option value="Cardano">Cardano</option>
+                                
+                                    <option value="Celer Network">Celer Network</option>
+                                
+                                    <option value="Cosmos">Cosmos</option>
+                                
+                                    <option value="Cronos">Cronos</option>
+                                
+                                    <option value="Decentraland">Decentraland</option>
+                                
+                                    <option value="Dent">Dent</option>
+                                
+                                    <option value="Divi">Divi</option>
+                                
+                                    <option value="EOS">EOS</option>
+                                
+                                    <option value="Enzyme">Enzyme</option>
+                                
+                                    <option value="Ethereum">Ethereum</option>
+                                
+                                    <option value="Fantom">Fantom</option>
+                                
+                                    <option value="Fetch.ai">Fetch.ai</option>
+                                
+                                    <option value="GXChain">GXChain</option>
+                                
+                                    <option value="Groestlcoin">Groestlcoin</option>
+                                
+                                    <option value="Hifi Finance">Hifi Finance</option>
+                                
+                                    <option value="Holo">Holo</option>
+                                
+                                    <option value="IOST">IOST</option>
+                                
+                                    <option value="IOTA">IOTA</option>
+                                
+                                    <option value="Litecoin">Litecoin</option>
+                                
+                                    <option value="Monero">Monero</option>
+                                
+                                    <option value="Nano">Nano</option>
+                                
+                                    <option value="Neo">Neo</option>
+                                
+                                    <option value="OMG Network">OMG Network</option>
+                                
+                                    <option value="Ontology">Ontology</option>
+                                
+                                    <option value="Qtum">Qtum</option>
+                                
+                                    <option value="Ravencoin">Ravencoin</option>
+                                
+                                    <option value="Ren">Ren</option>
+                                
+                                    <option value="Siacoin">Siacoin</option>
+                                
+                                    <option value="Status">Status</option>
+                                
+                                    <option value="Steem">Steem</option>
+                                
+                                    <option value="Stellar">Stellar</option>
+                                
+                                    <option value="Streamr">Streamr</option>
+                                
+                                    <option value="TRON">TRON</option>
+                                
+                                    <option value="Vechain">Vechain</option>
+                                
+                                    <option value="Verge">Verge</option>
+                                
+                                    <option value="WINkLink">WINkLink</option>
+                                
+                                    <option value="XRP">XRP</option>
+                                
+                                    <option value="Zilliqa">Zilliqa</option>
+                                
+                                    <option value="aelf">aelf</option>
+                                
+                                    <option value="ARPA Chain">ARPA Chain</option>
+                                
+                                    <option value="ASD">ASD</option>
+                                
+                                    <option value="BNB">BNB</option>
+                                
+                                    <option value="Bancor">Bancor</option>
+                                
+                                    <option value="Dusk Network">Dusk Network</option>
+                                
+                                    <option value="IoTeX">IoTeX</option>
+                                
+                                    <option value="KuCoin Token">KuCoin Token</option>
+                                
+                                    <option value="TomoChain">TomoChain</option>
+                                
+                                    <option value="Algorand">Algorand</option>
+                                
+                                    <option value="Ambire AdEx">Ambire AdEx</option>
+                                
+                                    <option value="Moss Coin">Moss Coin</option>
+                                
+                                    <option value="Utrust">Utrust</option>
+                                
+                                    <option value="Ankr">Ankr</option>
+                                
+                                    <option value="Ardor">Ardor</option>
+                                
+                                    <option value="Komodo">Komodo</option>
+                                
+                                    <option value="Request">Request</option>
+                                
+                                    <option value="Augur">Augur</option>
+                                
+                                    <option value="Bitcoin Gold">Bitcoin Gold</option>
+                                
+                                    <option value="NKN">NKN</option>
+                                
+                                    <option value="FirmaChain">FirmaChain</option>
+                                
+                                    <option value="GateToken">GateToken</option>
+                                
+                                    <option value="DigiByte">DigiByte</option>
+                                
+                                    <option value="NEM">NEM</option>
+                                
+                                    <option value="Zcash">Zcash</option>
+                                
+                                    <option value="Binance USD">Binance USD</option>
+                                
+                                    <option value="Pax Dollar">Pax Dollar</option>
+                                
+                                    <option value="Tether">Tether</option>
+                                
+                                    <option value="TrueUSD">TrueUSD</option>
+                                
+                                    <option value="USDK">USDK</option>
+                                
+                                    <option value="Bitcoin Cash">Bitcoin Cash</option>
+                                
+                                    <option value="Dash">Dash</option>
+                                
+                                    <option value="Decred">Decred</option>
+                                
+                                    <option value="Ethereum Classic">Ethereum Classic</option>
+                                
+                                    <option value="RSK Infrastructure Framework">RSK Infrastructure Framework</option>
+                                
+                                    <option value="Bitcoin SV">Bitcoin SV</option>
+                                
+                                    <option value="Neblio">Neblio</option>
+                                
+                                    <option value="Bitcoin Diamond">Bitcoin Diamond</option>
+                                
+                                    <option value="Maker">Maker</option>
+                                
+                                    <option value="Carry">Carry</option>
+                                
+                                    <option value="Hedera">Hedera</option>
+                                
+                                    <option value="Chiliz">Chiliz</option>
+                                
+                                    <option value="Theta Network">Theta Network</option>
+                                
+                                    <option value="Civic">Civic</option>
+                                
+                                    <option value="Cocos BCX">Cocos BCX</option>
+                                
+                                    <option value="Dogecoin">Dogecoin</option>
+                                
+                                    <option value="Elastos">Elastos</option>
+                                
+                                    <option value="IRISnet">IRISnet</option>
+                                
+                                    <option value="Electroneum">Electroneum</option>
+                                
+                                    <option value="Enjin Coin">Enjin Coin</option>
+                                
+                                    <option value="ICON">ICON</option>
+                                
+                                    <option value="Metal">Metal</option>
+                                
+                                    <option value="Gas">Gas</option>
+                                
+                                    <option value="Golem">Golem</option>
+                                
+                                    <option value="Loopring">Loopring</option>
+                                
+                                    <option value="Polygon">Polygon</option>
+                                
+                                    <option value="Huobi Token">Huobi Token</option>
+                                
+                                    <option value="QuarkChain">QuarkChain</option>
+                                
+                                    <option value="Orbs">Orbs</option>
+                                
+                                    <option value="Voyager Token">Voyager Token</option>
+                                
+                                    <option value="OKB">OKB</option>
+                                
+                                    <option value="Waves">Waves</option>
+                                
+                                    <option value="Wanchain">Wanchain</option>
+                                
+                                    <option value="Terra Luna Classic">Terra Luna Classic</option>
+                                
+                                    <option value="iExec RLC">iExec RLC</option>
+                                
+                                    <option value="Nexo">Nexo</option>
+                                
+                                    <option value="Tezos">Tezos</option>
+                                
+                                    <option value="MovieBloc">MovieBloc</option>
+                                
+                                    <option value="SingularityNET">SingularityNET</option>
+                                
+                                    <option value="Syscoin">Syscoin</option>
+                                
+                                    <option value="Theta Fuel">Theta Fuel</option>
+                                
+                                    <option value="USD Coin">USD Coin</option>
+                                
+                                    <option value="ABBC Coin">ABBC Coin</option>
+                                
+                                    <option value="Ark">Ark</option>
+                                
+                                    <option value="Centrality">Centrality</option>
+                                
+                                    <option value="Chainlink">Chainlink</option>
+                                
+                                    <option value="Chimpion">Chimpion</option>
+                                
+                                    <option value="Constellation">Constellation</option>
+                                
+                                    <option value="Elitium">Elitium</option>
+                                
+                                    <option value="FTX Token">FTX Token</option>
+                                
+                                    <option value="FUNToken">FUNToken</option>
+                                
+                                    <option value="Function X">Function X</option>
+                                
+                                    <option value="Horizen">Horizen</option>
+                                
+                                    <option value="IQ">IQ</option>
+                                
+                                    <option value="LTO Network">LTO Network</option>
+                                
+                                    <option value="Lisk">Lisk</option>
+                                
+                                    <option value="Loom Network">Loom Network</option>
+                                
+                                    <option value="MX Token">MX Token</option>
+                                
+                                    <option value="MaidSafeCoin">MaidSafeCoin</option>
+                                
+                                    <option value="Metadium">Metadium</option>
+                                
+                                    <option value="Numeraire">Numeraire</option>
+                                
+                                    <option value="Ocean Protocol">Ocean Protocol</option>
+                                
+                                    <option value="PAX Gold">PAX Gold</option>
+                                
+                                    <option value="Polymath">Polymath</option>
+                                
+                                    <option value="Powerledger">Powerledger</option>
+                                
+                                    <option value="Quant">Quant</option>
+                                
+                                    <option value="Reserve Rights">Reserve Rights</option>
+                                
+                                    <option value="Revain">Revain</option>
+                                
+                                    <option value="STASIS EURO">STASIS EURO</option>
+                                
+                                    <option value="STP Network">STP Network</option>
+                                
+                                    <option value="SXP">SXP</option>
+                                
+                                    <option value="Safe">Safe</option>
+                                
+                                    <option value="Steem Dollars">Steem Dollars</option>
+                                
+                                    <option value="Storj">Storj</option>
+                                
+                                    <option value="StormX">StormX</option>
+                                
+                                    <option value="Stratis">Stratis</option>
+                                
+                                    <option value="SwissBorg">SwissBorg</option>
+                                
+                                    <option value="Synthetix">Synthetix</option>
+                                
+                                    <option value="THORChain">THORChain</option>
+                                
+                                    <option value="Telcoin">Telcoin</option>
+                                
+                                    <option value="Telos">Telos</option>
+                                
+                                    <option value="ThunderCore">ThunderCore</option>
+                                
+                                    <option value="UNUS SED LEO">UNUS SED LEO</option>
+                                
+                                    <option value="Unibright">Unibright</option>
+                                
+                                    <option value="Velas">Velas</option>
+                                
+                                    <option value="WAX">WAX</option>
+                                
+                                    <option value="Wirex Token">Wirex Token</option>
+                                
+                            </select>
+                        </div>
+                        <div class="col-2 pb-2">
+                            <button type="button" class="btn btn-primary btn-block" onclick="neighbourhoodHighlight({nodes: []});">Reset Selection</button>
+                        </div>
+                    </div>
+                </div>
+            
+            
+              <div id="filter-menu" class="card-header">
+                <div class="row no-gutters">
+                  <div class="col-3 pb-2">
+                    <select
+                            class="form-select"
+                            aria-label="Default select example"
+                            onchange="updateFilter(value, 'item')"
+                            id="select-item"
+                        >
+                        <option value="">Select a network item</option>
+                        <option value="edge">edge</option>
+                        <option value="node">node</option>
+                    </select>
+                  </div>
+                  <div class="col-3 pb-2">
+                    <select
+                            class="form-select"
+                            aria-label="Default select example"
+                            onchange="updateFilter(value, 'property')"
+                            id="select-property"
+                        >
+                        <option value="">Select a property...</option>
+                    </select>
+                  </div>
+                  <div class="col-3 pb-2">
+                    <select
+                            class="form-select"
+                            aria-label="Default select example"
+                            id="select-value"
+                        >
+                        <option value="">Select value(s)...</option>
+                    </select>
+                  </div>
+                  <div class="col-1 pb-2">
+                    <button type="button" class="btn btn-primary btn-block" onclick="highlightFilter(filter);">Filter</button>
+                  </div>
+                  <div class="col-2 pb-2">
+                    <button type="button" class="btn btn-primary btn-block" onclick="clearFilter(true)">Reset Selection</button>
+                  </div>
+                </div>
+              </div>
+            
+            <div id="mynetwork" class="card-body"></div>
+        </div>
+
+        
+            <div id="loadingBar">
+              <div class="outerBorder">
+                <div id="text">0%</div>
+                <div id="border">
+                  <div id="bar"></div>
+                </div>
+              </div>
+            </div>
+        
+        
+
+        <script type="text/javascript">
+
+              // initialize global variables.
+              var edges;
+              var nodes;
+              var allNodes;
+              var allEdges;
+              var nodeColors;
+              var originalNodes;
+              var network;
+              var container;
+              var options, data;
+              var filter = {
+                  item : '',
+                  property : '',
+                  value : []
+              };
+
+              
+                  new TomSelect("#select-node",{
+                      create: false,
+                      sortField: {
+                          field: "text",
+                          direction: "asc"
+                      }
+                  });
+              
+
+              
+                  // explicitly using onItemAdd and this function as we need to save multiple values
+                  let updateValueFilter = function() {
+                      return function () {
+                      filter['value'].push(arguments[0])
+                      }
+                  }
+
+                  let valueControl = new TomSelect("#select-value",{
+                      maxItems: null,
+                      valueField: 'id',
+                      labelField: 'title',
+                      searchField: 'title',
+                      create: false,
+                      sortField: {
+                          field: "text",
+                          direction: "asc"
+                      },
+                      onItemAdd: updateValueFilter()
+                  });
+
+                  let addValues = function() {
+                      return function () {
+                          // clear the current value options and add the selected attribute values
+                          // tom-select handles duplicates
+                          let selectedProperty = arguments[0];
+                          valueControl.clear();
+                          valueControl.clearOptions();
+                          filter['value'] = []
+                          if (filter['item'] === 'node') {
+                              for (let each in allNodes) {
+                                  valueControl.addOption({
+                                      id:allNodes[each][selectedProperty],
+                                      title:allNodes[each][selectedProperty]
+                                  })
+                              }
+                          }
+                          else if (filter['item'] === 'edge') {
+                              for (let each in allEdges) {
+                                  valueControl.addOption({
+                                      id:allEdges[each][selectedProperty],
+                                      title:allEdges[each][selectedProperty]
+                                  })
+                              }
+                          }
+                      }
+                  };
+
+                  let propControl = new TomSelect("#select-property",{
+                      valueField: 'id',
+                      labelField: 'title',
+                      searchField: 'title',
+                      create: false,
+                      sortField: {
+                          field: "text",
+                          direction: "asc"
+                      },
+                      onItemAdd: addValues()
+                  });
+
+                  let addProperties = function() {
+                      return function () {
+                          // loops through the selected network item and adds the attributes to dropdown
+                          // tom-select handles duplicates
+                          clearFilter(false)
+                          if (arguments[0] === 'edge') {
+                              for (let each in allEdges) {
+                                  if (allEdges.hasOwnProperty(each)) {
+                                      for (let eachProp in allEdges[each]) {
+                                          if (allEdges[each].hasOwnProperty(eachProp)) {
+                                              propControl.addOption({id: eachProp, title: eachProp})
+                                          }
+                                      }
+                                  }
+                              }
+                          }
+                          else if (arguments[0] === 'node') {
+                              for (let each in allNodes) {
+                                  if (allNodes.hasOwnProperty(each)) {
+                                      for (let eachProp in allNodes[each]) {
+                                          if (allNodes[each].hasOwnProperty(eachProp)
+                                              && (eachProp !== 'hidden' && eachProp !== 'savedLabel'
+                                                  && eachProp !== 'hiddenLabel')) {
+                                              propControl.addOption({id: eachProp, title: eachProp})
+
+                                          }
+                                      }
+                                  }
+                              }
+                          }
+                      }
+                  };
+
+                  let itemControl = new TomSelect("#select-item",{
+                      create: false,
+                      sortField:{
+                          field: "text",
+                          direction: "asc"
+                      },
+                      onItemAdd: addProperties()
+                  });
+
+                  function clearFilter(reset) {
+                      // utility function to clear all the selected filter options
+                      // if reset is set to true, the existing filter will be removed
+                      // else, only the dropdown options are cleared
+                      propControl.clear();
+                      propControl.clearOptions();
+                      valueControl.clear();
+                      valueControl.clearOptions();
+                      filter = {
+                          item : '',
+                          property : '',
+                          value : []
+                      }
+                      if (reset) {
+                          itemControl.clear();
+                          filterHighlight({nodes: []})
+                      }
+                  }
+
+                  function updateFilter(value, key) {
+                      // key could be 'item' or 'property' and value is as selected in dropdown
+                      filter[key] = value
+                  }
+
+              
+
+              // This method is responsible for drawing the graph, returns the drawn network
+              function drawGraph() {
+                  var container = document.getElementById('mynetwork');
+
+                  
+
+                  // parsing and collecting nodes and edges from the python
+                  nodes = new vis.DataSet([{"color": "#97c2fc", "font": {"color": "white"}, "id": "0x", "label": "0x", "shape": "dot", "size": 43}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Aeternity", "label": "Aeternity", "shape": "dot", "size": 34}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Basic Attention Token", "label": "Basic Attention Token", "shape": "dot", "size": 44}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Bitcoin", "label": "Bitcoin", "shape": "dot", "size": 41}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Cardano", "label": "Cardano", "shape": "dot", "size": 47}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Celer Network", "label": "Celer Network", "shape": "dot", "size": 20}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Cosmos", "label": "Cosmos", "shape": "dot", "size": 16}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Cronos", "label": "Cronos", "shape": "dot", "size": 30}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Decentraland", "label": "Decentraland", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Dent", "label": "Dent", "shape": "dot", "size": 19}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Divi", "label": "Divi", "shape": "dot", "size": 26}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "EOS", "label": "EOS", "shape": "dot", "size": 42}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Enzyme", "label": "Enzyme", "shape": "dot", "size": 22}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Ethereum", "label": "Ethereum", "shape": "dot", "size": 41}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Fantom", "label": "Fantom", "shape": "dot", "size": 39}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Fetch.ai", "label": "Fetch.ai", "shape": "dot", "size": 40}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "GXChain", "label": "GXChain", "shape": "dot", "size": 28}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Groestlcoin", "label": "Groestlcoin", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Hifi Finance", "label": "Hifi Finance", "shape": "dot", "size": 11}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Holo", "label": "Holo", "shape": "dot", "size": 15}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "IOST", "label": "IOST", "shape": "dot", "size": 41}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "IOTA", "label": "IOTA", "shape": "dot", "size": 34}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Litecoin", "label": "Litecoin", "shape": "dot", "size": 40}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Monero", "label": "Monero", "shape": "dot", "size": 31}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Nano", "label": "Nano", "shape": "dot", "size": 16}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Neo", "label": "Neo", "shape": "dot", "size": 37}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "OMG Network", "label": "OMG Network", "shape": "dot", "size": 42}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Ontology", "label": "Ontology", "shape": "dot", "size": 44}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Qtum", "label": "Qtum", "shape": "dot", "size": 39}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Ravencoin", "label": "Ravencoin", "shape": "dot", "size": 31}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Ren", "label": "Ren", "shape": "dot", "size": 2}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Siacoin", "label": "Siacoin", "shape": "dot", "size": 3}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Status", "label": "Status", "shape": "dot", "size": 36}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Steem", "label": "Steem", "shape": "dot", "size": 24}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Stellar", "label": "Stellar", "shape": "dot", "size": 45}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Streamr", "label": "Streamr", "shape": "dot", "size": 27}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "TRON", "label": "TRON", "shape": "dot", "size": 43}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Vechain", "label": "Vechain", "shape": "dot", "size": 27}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Verge", "label": "Verge", "shape": "dot", "size": 34}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "WINkLink", "label": "WINkLink", "shape": "dot", "size": 39}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "XRP", "label": "XRP", "shape": "dot", "size": 40}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Zilliqa", "label": "Zilliqa", "shape": "dot", "size": 36}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "aelf", "label": "aelf", "shape": "dot", "size": 7}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "ARPA Chain", "label": "ARPA Chain", "shape": "dot", "size": 2}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "ASD", "label": "ASD", "shape": "dot", "size": 3}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "BNB", "label": "BNB", "shape": "dot", "size": 27}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Bancor", "label": "Bancor", "shape": "dot", "size": 23}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Dusk Network", "label": "Dusk Network", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "IoTeX", "label": "IoTeX", "shape": "dot", "size": 7}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "KuCoin Token", "label": "KuCoin Token", "shape": "dot", "size": 13}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "TomoChain", "label": "TomoChain", "shape": "dot", "size": 6}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Algorand", "label": "Algorand", "shape": "dot", "size": 2}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Ambire AdEx", "label": "Ambire AdEx", "shape": "dot", "size": 3}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Moss Coin", "label": "Moss Coin", "shape": "dot", "size": 3}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Utrust", "label": "Utrust", "shape": "dot", "size": 3}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Ankr", "label": "Ankr", "shape": "dot", "size": 2}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Ardor", "label": "Ardor", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Komodo", "label": "Komodo", "shape": "dot", "size": 14}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Request", "label": "Request", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Augur", "label": "Augur", "shape": "dot", "size": 7}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Bitcoin Gold", "label": "Bitcoin Gold", "shape": "dot", "size": 11}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "NKN", "label": "NKN", "shape": "dot", "size": 7}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "FirmaChain", "label": "FirmaChain", "shape": "dot", "size": 4}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "GateToken", "label": "GateToken", "shape": "dot", "size": 4}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "DigiByte", "label": "DigiByte", "shape": "dot", "size": 14}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "NEM", "label": "NEM", "shape": "dot", "size": 14}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Zcash", "label": "Zcash", "shape": "dot", "size": 18}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Binance USD", "label": "Binance USD", "shape": "dot", "size": 5}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Pax Dollar", "label": "Pax Dollar", "shape": "dot", "size": 5}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Tether", "label": "Tether", "shape": "dot", "size": 5}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "TrueUSD", "label": "TrueUSD", "shape": "dot", "size": 6}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "USDK", "label": "USDK", "shape": "dot", "size": 5}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Bitcoin Cash", "label": "Bitcoin Cash", "shape": "dot", "size": 28}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Dash", "label": "Dash", "shape": "dot", "size": 19}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Decred", "label": "Decred", "shape": "dot", "size": 9}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Ethereum Classic", "label": "Ethereum Classic", "shape": "dot", "size": 16}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "RSK Infrastructure Framework", "label": "RSK Infrastructure Framework", "shape": "dot", "size": 14}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Bitcoin SV", "label": "Bitcoin SV", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Neblio", "label": "Neblio", "shape": "dot", "size": 3}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Bitcoin Diamond", "label": "Bitcoin Diamond", "shape": "dot", "size": 4}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Maker", "label": "Maker", "shape": "dot", "size": 4}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Carry", "label": "Carry", "shape": "dot", "size": 2}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Hedera", "label": "Hedera", "shape": "dot", "size": 4}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Chiliz", "label": "Chiliz", "shape": "dot", "size": 3}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Theta Network", "label": "Theta Network", "shape": "dot", "size": 4}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Civic", "label": "Civic", "shape": "dot", "size": 2}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Cocos BCX", "label": "Cocos BCX", "shape": "dot", "size": 5}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Dogecoin", "label": "Dogecoin", "shape": "dot", "size": 5}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Elastos", "label": "Elastos", "shape": "dot", "size": 2}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "IRISnet", "label": "IRISnet", "shape": "dot", "size": 3}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Electroneum", "label": "Electroneum", "shape": "dot", "size": 2}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Enjin Coin", "label": "Enjin Coin", "shape": "dot", "size": 4}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "ICON", "label": "ICON", "shape": "dot", "size": 5}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Metal", "label": "Metal", "shape": "dot", "size": 4}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Gas", "label": "Gas", "shape": "dot", "size": 5}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Golem", "label": "Golem", "shape": "dot", "size": 6}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Loopring", "label": "Loopring", "shape": "dot", "size": 3}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Polygon", "label": "Polygon", "shape": "dot", "size": 4}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Huobi Token", "label": "Huobi Token", "shape": "dot", "size": 5}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "QuarkChain", "label": "QuarkChain", "shape": "dot", "size": 3}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Orbs", "label": "Orbs", "shape": "dot", "size": 3}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Voyager Token", "label": "Voyager Token", "shape": "dot", "size": 3}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "OKB", "label": "OKB", "shape": "dot", "size": 3}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Waves", "label": "Waves", "shape": "dot", "size": 3}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Wanchain", "label": "Wanchain", "shape": "dot", "size": 3}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Terra Luna Classic", "label": "Terra Luna Classic", "shape": "dot", "size": 2}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "iExec RLC", "label": "iExec RLC", "shape": "dot", "size": 2}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Nexo", "label": "Nexo", "shape": "dot", "size": 3}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Tezos", "label": "Tezos", "shape": "dot", "size": 3}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "MovieBloc", "label": "MovieBloc", "shape": "dot", "size": 2}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "SingularityNET", "label": "SingularityNET", "shape": "dot", "size": 2}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Syscoin", "label": "Syscoin", "shape": "dot", "size": 2}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Theta Fuel", "label": "Theta Fuel", "shape": "dot", "size": 2}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "USD Coin", "label": "USD Coin", "shape": "dot", "size": 2}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "ABBC Coin", "label": "ABBC Coin", "shape": "dot", "size": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Ark", "label": "Ark", "shape": "dot", "size": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Centrality", "label": "Centrality", "shape": "dot", "size": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Chainlink", "label": "Chainlink", "shape": "dot", "size": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Chimpion", "label": "Chimpion", "shape": "dot", "size": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Constellation", "label": "Constellation", "shape": "dot", "size": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Elitium", "label": "Elitium", "shape": "dot", "size": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "FTX Token", "label": "FTX Token", "shape": "dot", "size": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "FUNToken", "label": "FUNToken", "shape": "dot", "size": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Function X", "label": "Function X", "shape": "dot", "size": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Horizen", "label": "Horizen", "shape": "dot", "size": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "IQ", "label": "IQ", "shape": "dot", "size": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "LTO Network", "label": "LTO Network", "shape": "dot", "size": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Lisk", "label": "Lisk", "shape": "dot", "size": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Loom Network", "label": "Loom Network", "shape": "dot", "size": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "MX Token", "label": "MX Token", "shape": "dot", "size": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "MaidSafeCoin", "label": "MaidSafeCoin", "shape": "dot", "size": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Metadium", "label": "Metadium", "shape": "dot", "size": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Numeraire", "label": "Numeraire", "shape": "dot", "size": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Ocean Protocol", "label": "Ocean Protocol", "shape": "dot", "size": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "PAX Gold", "label": "PAX Gold", "shape": "dot", "size": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Polymath", "label": "Polymath", "shape": "dot", "size": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Powerledger", "label": "Powerledger", "shape": "dot", "size": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Quant", "label": "Quant", "shape": "dot", "size": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Reserve Rights", "label": "Reserve Rights", "shape": "dot", "size": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Revain", "label": "Revain", "shape": "dot", "size": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "STASIS EURO", "label": "STASIS EURO", "shape": "dot", "size": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "STP Network", "label": "STP Network", "shape": "dot", "size": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "SXP", "label": "SXP", "shape": "dot", "size": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Safe", "label": "Safe", "shape": "dot", "size": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Steem Dollars", "label": "Steem Dollars", "shape": "dot", "size": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Storj", "label": "Storj", "shape": "dot", "size": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "StormX", "label": "StormX", "shape": "dot", "size": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Stratis", "label": "Stratis", "shape": "dot", "size": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "SwissBorg", "label": "SwissBorg", "shape": "dot", "size": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Synthetix", "label": "Synthetix", "shape": "dot", "size": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "THORChain", "label": "THORChain", "shape": "dot", "size": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Telcoin", "label": "Telcoin", "shape": "dot", "size": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Telos", "label": "Telos", "shape": "dot", "size": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "ThunderCore", "label": "ThunderCore", "shape": "dot", "size": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "UNUS SED LEO", "label": "UNUS SED LEO", "shape": "dot", "size": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Unibright", "label": "Unibright", "shape": "dot", "size": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Velas", "label": "Velas", "shape": "dot", "size": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "WAX", "label": "WAX", "shape": "dot", "size": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Wirex Token", "label": "Wirex Token", "shape": "dot", "size": 1}]);
+                  edges = new vis.DataSet([{"from": "0x", "to": "Aeternity", "width": 0.39379015606054646}, {"from": "0x", "to": "Basic Attention Token", "width": 2.5023922764365856}, {"from": "0x", "to": "Bitcoin", "width": -0.7153729618426105}, {"from": "0x", "to": "Cardano", "width": -0.23950507650916647}, {"from": "0x", "to": "Celer Network", "width": 0.28624908877215516}, {"from": "0x", "to": "Cosmos", "width": -0.9548250571332316}, {"from": "0x", "to": "Cronos", "width": 0.45756900067773454}, {"from": "0x", "to": "Decentraland", "width": 0.31127511572847105}, {"from": "0x", "to": "Dent", "width": -0.3589405123247381}, {"from": "0x", "to": "Divi", "width": -1.2018203820434479}, {"from": "0x", "to": "EOS", "width": -0.202780311346244}, {"from": "0x", "to": "Enzyme", "width": -1.241854856335708}, {"from": "0x", "to": "Ethereum", "width": -0.9028085289069573}, {"from": "0x", "to": "Fantom", "width": 1.731070252676229}, {"from": "0x", "to": "Fetch.ai", "width": 1.7156478110143318}, {"from": "0x", "to": "GXChain", "width": -1.2461630880471495}, {"from": "0x", "to": "Groestlcoin", "width": -1.1872913977767419}, {"from": "0x", "to": "Hifi Finance", "width": -0.0381039020000322}, {"from": "0x", "to": "Holo", "width": -1.0611717812639059}, {"from": "0x", "to": "IOST", "width": 2.4175024607328326}, {"from": "0x", "to": "IOTA", "width": -0.04732759517672679}, {"from": "0x", "to": "Litecoin", "width": -1.2639500169054712}, {"from": "0x", "to": "Monero", "width": -0.6779334876608554}, {"from": "0x", "to": "Nano", "width": 0.23279891631755686}, {"from": "0x", "to": "Neo", "width": 1.1112179863249714}, {"from": "0x", "to": "OMG Network", "width": 0.7112803950857768}, {"from": "0x", "to": "Ontology", "width": 0.7407446535913658}, {"from": "0x", "to": "Qtum", "width": 0.7366502414444414}, {"from": "0x", "to": "Ravencoin", "width": 1.3091225810659988}, {"from": "0x", "to": "Ren", "width": -0.6021645516386569}, {"from": "0x", "to": "Siacoin", "width": -1.3536249731759646}, {"from": "0x", "to": "Status", "width": 0.4616033747861486}, {"from": "0x", "to": "Steem", "width": 0.569656648465866}, {"from": "0x", "to": "Stellar", "width": 1.703590006809787}, {"from": "0x", "to": "Streamr", "width": 1.0122619152758008}, {"from": "0x", "to": "TRON", "width": 0.6479865630669772}, {"from": "0x", "to": "Vechain", "width": 1.2293112383486262}, {"from": "0x", "to": "Verge", "width": 1.3687863967923821}, {"from": "0x", "to": "WINkLink", "width": 0.2661717555787627}, {"from": "0x", "to": "XRP", "width": 0.9396663328673704}, {"from": "0x", "to": "Zilliqa", "width": 1.2652843896417356}, {"from": "0x", "to": "aelf", "width": -1.3665442211534193}, {"from": "ARPA Chain", "to": "GXChain", "width": -0.9170019455827895}, {"from": "ASD", "to": "BNB", "width": -1.019091969938518}, {"from": "ASD", "to": "Bancor", "width": -0.18837500364890858}, {"from": "Aeternity", "to": "BNB", "width": -0.9457844653915732}, {"from": "Aeternity", "to": "Basic Attention Token", "width": 0.7067038359187778}, {"from": "Aeternity", "to": "Bitcoin", "width": -0.1400835748991802}, {"from": "Aeternity", "to": "Cardano", "width": 0.2721150836364912}, {"from": "Aeternity", "to": "Cronos", "width": 0.5462463611128133}, {"from": "Aeternity", "to": "Dent", "width": -1.0488405337613258}, {"from": "Aeternity", "to": "Divi", "width": -0.31062448266424847}, {"from": "Aeternity", "to": "Dusk Network", "width": -0.31610620387822896}, {"from": "Aeternity", "to": "EOS", "width": 1.1964182999085935}, {"from": "Aeternity", "to": "Fantom", "width": -0.11508829681173824}, {"from": "Aeternity", "to": "Fetch.ai", "width": -0.08196117987222505}, {"from": "Aeternity", "to": "GXChain", "width": 0.40581865507596127}, {"from": "Aeternity", "to": "IOST", "width": 1.0051285009765816}, {"from": "Aeternity", "to": "IOTA", "width": 0.31725327257055325}, {"from": "Aeternity", "to": "IoTeX", "width": -0.5062559663749561}, {"from": "Aeternity", "to": "KuCoin Token", "width": -1.1238793745890738}, {"from": "Aeternity", "to": "Litecoin", "width": -0.7001966402855354}, {"from": "Aeternity", "to": "Monero", "width": -0.6802884977869673}, {"from": "Aeternity", "to": "Neo", "width": -0.6490217385102476}, {"from": "Aeternity", "to": "OMG Network", "width": -0.998521642508608}, {"from": "Aeternity", "to": "Ontology", "width": 1.3534702578701008}, {"from": "Aeternity", "to": "Qtum", "width": -0.07059435132175457}, {"from": "Aeternity", "to": "Status", "width": -1.2295994700500388}, {"from": "Aeternity", "to": "Steem", "width": -1.3304142687654825}, {"from": "Aeternity", "to": "Stellar", "width": 0.1154836216153949}, {"from": "Aeternity", "to": "TRON", "width": -1.3519341730502081}, {"from": "Aeternity", "to": "TomoChain", "width": -1.1615539503650538}, {"from": "Aeternity", "to": "Vechain", "width": 0.1475507196302598}, {"from": "Aeternity", "to": "Verge", "width": -1.2920744743493362}, {"from": "Aeternity", "to": "WINkLink", "width": -0.3491435767771169}, {"from": "Aeternity", "to": "XRP", "width": -1.2582545057078105}, {"from": "Aeternity", "to": "Zilliqa", "width": 0.0366707209082009}, {"from": "Algorand", "to": "TomoChain", "width": -0.6486770084007881}, {"from": "Ambire AdEx", "to": "Moss Coin", "width": -0.5448397938576448}, {"from": "Ambire AdEx", "to": "Utrust", "width": -1.3547572965101409}, {"from": "Ankr", "to": "Groestlcoin", "width": -0.574081763287124}, {"from": "Ardor", "to": "Fetch.ai", "width": -0.07225941603900768}, {"from": "Ardor", "to": "Komodo", "width": -0.5527128152120753}, {"from": "Ardor", "to": "Ontology", "width": -0.6015655094643243}, {"from": "Ardor", "to": "Request", "width": 1.1530013930953709}, {"from": "Ardor", "to": "Status", "width": -1.0321500566750679}, {"from": "Ardor", "to": "Stellar", "width": -0.7061758956174646}, {"from": "Ardor", "to": "Streamr", "width": 0.947134413558403}, {"from": "Ardor", "to": "Verge", "width": 0.5988030604879654}, {"from": "Ardor", "to": "XRP", "width": -0.3245016717413795}, {"from": "Augur", "to": "Bitcoin Gold", "width": 0.288427190806419}, {"from": "Augur", "to": "Divi", "width": -1.3663593739385285}, {"from": "Augur", "to": "EOS", "width": -1.1155364416807156}, {"from": "Augur", "to": "GXChain", "width": -1.4069970347656735}, {"from": "Augur", "to": "NKN", "width": -1.1575663317318465}, {"from": "Augur", "to": "Ontology", "width": -0.5384040951503768}, {"from": "BNB", "to": "Basic Attention Token", "width": -0.413321617673058}, {"from": "BNB", "to": "Bitcoin", "width": -0.9450528871313236}, {"from": "BNB", "to": "Cardano", "width": -0.8581820178536518}, {"from": "BNB", "to": "Dent", "width": 1.0167307098217986}, {"from": "BNB", "to": "Divi", "width": -1.0323635740291555}, {"from": "BNB", "to": "EOS", "width": -1.0445605516258591}, {"from": "BNB", "to": "Ethereum", "width": -0.9987069683356733}, {"from": "BNB", "to": "Fantom", "width": -1.06100138897432}, {"from": "BNB", "to": "Fetch.ai", "width": 0.24300134056696276}, {"from": "BNB", "to": "FirmaChain", "width": -1.1074459402835182}, {"from": "BNB", "to": "GXChain", "width": 0.15317219203217683}, {"from": "BNB", "to": "GateToken", "width": -1.3682054809150317}, {"from": "BNB", "to": "IOST", "width": 0.24649491420519873}, {"from": "BNB", "to": "IOTA", "width": -0.6657799543021325}, {"from": "BNB", "to": "KuCoin Token", "width": -0.11433279147030954}, {"from": "BNB", "to": "Monero", "width": -1.0475095318408587}, {"from": "BNB", "to": "Neo", "width": -0.1979129384188002}, {"from": "BNB", "to": "Ontology", "width": 0.5191331581520241}, {"from": "BNB", "to": "Ravencoin", "width": -0.7586301017418294}, {"from": "BNB", "to": "Streamr", "width": -1.3369991767374927}, {"from": "BNB", "to": "TRON", "width": -0.9059077933444523}, {"from": "BNB", "to": "Verge", "width": -0.30583534422165715}, {"from": "BNB", "to": "WINkLink", "width": 0.27447230827734437}, {"from": "BNB", "to": "Zilliqa", "width": -0.41931514535349396}, {"from": "Bancor", "to": "Basic Attention Token", "width": 0.04453925397919369}, {"from": "Bancor", "to": "Bitcoin", "width": -0.23166561446312572}, {"from": "Bancor", "to": "Cardano", "width": 0.45198724410268615}, {"from": "Bancor", "to": "Cosmos", "width": -0.30462588480213326}, {"from": "Bancor", "to": "Dent", "width": -0.07406216260038019}, {"from": "Bancor", "to": "EOS", "width": 0.24393521840611204}, {"from": "Bancor", "to": "Ethereum", "width": 1.918461879544315}, {"from": "Bancor", "to": "Fantom", "width": 0.29601602721841286}, {"from": "Bancor", "to": "GXChain", "width": 1.0954394642043643}, {"from": "Bancor", "to": "Holo", "width": -1.1045791400923364}, {"from": "Bancor", "to": "IOST", "width": -0.8614659207535142}, {"from": "Bancor", "to": "IOTA", "width": -0.9096292952911019}, {"from": "Bancor", "to": "Litecoin", "width": 0.3704828940060168}, {"from": "Bancor", "to": "NKN", "width": -1.3889696454520812}, {"from": "Bancor", "to": "OMG Network", "width": 0.5777347948945738}, {"from": "Bancor", "to": "Qtum", "width": 0.3508964670484684}, {"from": "Bancor", "to": "Stellar", "width": -0.056699226692963685}, {"from": "Bancor", "to": "TRON", "width": -1.0812650877359444}, {"from": "Bancor", "to": "WINkLink", "width": -1.172845567459317}, {"from": "Bancor", "to": "XRP", "width": -1.0826844700591365}, {"from": "Bancor", "to": "Zilliqa", "width": -0.12070966590378014}, {"from": "Basic Attention Token", "to": "Bitcoin", "width": 0.7430209370391135}, {"from": "Basic Attention Token", "to": "Cardano", "width": 0.6907269289327036}, {"from": "Basic Attention Token", "to": "Cosmos", "width": 0.9541146298165325}, {"from": "Basic Attention Token", "to": "Cronos", "width": -1.0288341594899415}, {"from": "Basic Attention Token", "to": "Decentraland", "width": -1.000734347366739}, {"from": "Basic Attention Token", "to": "Dent", "width": -0.6604492522329232}, {"from": "Basic Attention Token", "to": "DigiByte", "width": -0.5559009869923884}, {"from": "Basic Attention Token", "to": "Divi", "width": -1.0319946335858776}, {"from": "Basic Attention Token", "to": "Dusk Network", "width": 0.34108266337845555}, {"from": "Basic Attention Token", "to": "EOS", "width": 0.6943299087444709}, {"from": "Basic Attention Token", "to": "Enzyme", "width": -1.2883623415647372}, {"from": "Basic Attention Token", "to": "Ethereum", "width": 0.5377045883432259}, {"from": "Basic Attention Token", "to": "Fantom", "width": 1.558494682462536}, {"from": "Basic Attention Token", "to": "Fetch.ai", "width": 1.4591331643312437}, {"from": "Basic Attention Token", "to": "GXChain", "width": -0.28920224311262904}, {"from": "Basic Attention Token", "to": "Hifi Finance", "width": -1.2906300940711257}, {"from": "Basic Attention Token", "to": "IOST", "width": 1.5376638131913276}, {"from": "Basic Attention Token", "to": "IOTA", "width": 1.86228836939472}, {"from": "Basic Attention Token", "to": "IoTeX", "width": -0.572759685509069}, {"from": "Basic Attention Token", "to": "Litecoin", "width": -0.24462379498600498}, {"from": "Basic Attention Token", "to": "Monero", "width": 0.08808582455578036}, {"from": "Basic Attention Token", "to": "NEM", "width": -1.2104350103431005}, {"from": "Basic Attention Token", "to": "Nano", "width": 0.26509041929728466}, {"from": "Basic Attention Token", "to": "Neo", "width": 0.7872975666693173}, {"from": "Basic Attention Token", "to": "OMG Network", "width": 0.45327029756403153}, {"from": "Basic Attention Token", "to": "Ontology", "width": 0.8202711691206223}, {"from": "Basic Attention Token", "to": "Qtum", "width": 0.7359575313863063}, {"from": "Basic Attention Token", "to": "Ravencoin", "width": 0.343256263905675}, {"from": "Basic Attention Token", "to": "Status", "width": -0.7585494500434106}, {"from": "Basic Attention Token", "to": "Steem", "width": -0.8246217565317521}, {"from": "Basic Attention Token", "to": "Stellar", "width": 0.9423032648877887}, {"from": "Basic Attention Token", "to": "Streamr", "width": -0.17960447519436232}, {"from": "Basic Attention Token", "to": "TRON", "width": 0.39644857105309805}, {"from": "Basic Attention Token", "to": "Vechain", "width": 0.952363560950892}, {"from": "Basic Attention Token", "to": "Verge", "width": 0.4358583698853264}, {"from": "Basic Attention Token", "to": "WINkLink", "width": 1.3505065699713108}, {"from": "Basic Attention Token", "to": "XRP", "width": -0.21320907456019625}, {"from": "Basic Attention Token", "to": "Zcash", "width": -0.8823161402803663}, {"from": "Basic Attention Token", "to": "Zilliqa", "width": 0.930241085858692}, {"from": "Binance USD", "to": "Pax Dollar", "width": 2.4946499752748554}, {"from": "Binance USD", "to": "Tether", "width": 1.2801547449391475}, {"from": "Binance USD", "to": "TrueUSD", "width": 2.5447383912622774}, {"from": "Binance USD", "to": "USDK", "width": 3.034538467142244}, {"from": "Bitcoin", "to": "Bitcoin Cash", "width": 1.225751982338948}, {"from": "Bitcoin", "to": "Bitcoin Gold", "width": -1.4069319581704216}, {"from": "Bitcoin", "to": "Cardano", "width": 2.6216524842112356}, {"from": "Bitcoin", "to": "Cosmos", "width": -1.376441644264106}, {"from": "Bitcoin", "to": "Cronos", "width": 0.5814093574326341}, {"from": "Bitcoin", "to": "Dash", "width": -0.6452667033075006}, {"from": "Bitcoin", "to": "Decentraland", "width": 0.18870137566228395}, {"from": "Bitcoin", "to": "Decred", "width": -1.1957644429311305}, {"from": "Bitcoin", "to": "DigiByte", "width": 1.029839923180229}, {"from": "Bitcoin", "to": "Divi", "width": 0.13550635930479657}, {"from": "Bitcoin", "to": "EOS", "width": 1.8830664967719561}, {"from": "Bitcoin", "to": "Enzyme", "width": -0.5111293801339774}, {"from": "Bitcoin", "to": "Ethereum", "width": 1.147483705401498}, {"from": "Bitcoin", "to": "Ethereum Classic", "width": -1.0711883031039797}, {"from": "Bitcoin", "to": "Fetch.ai", "width": -0.7130656317788238}, {"from": "Bitcoin", "to": "GXChain", "width": -1.2766374667620013}, {"from": "Bitcoin", "to": "IOTA", "width": 0.04223227465103176}, {"from": "Bitcoin", "to": "IoTeX", "width": -0.7237743982760624}, {"from": "Bitcoin", "to": "KuCoin Token", "width": 0.7930380547085535}, {"from": "Bitcoin", "to": "Litecoin", "width": 2.4851382695499225}, {"from": "Bitcoin", "to": "Monero", "width": 2.3748521452882847}, {"from": "Bitcoin", "to": "NEM", "width": 0.829273027356002}, {"from": "Bitcoin", "to": "Neo", "width": -0.08118618248136762}, {"from": "Bitcoin", "to": "OMG Network", "width": -0.25271500185143875}, {"from": "Bitcoin", "to": "Ontology", "width": -0.6579690299388284}, {"from": "Bitcoin", "to": "Qtum", "width": 1.162970006578555}, {"from": "Bitcoin", "to": "RSK Infrastructure Framework", "width": 2.186142191705325}, {"from": "Bitcoin", "to": "Status", "width": 0.7452942759163826}, {"from": "Bitcoin", "to": "Stellar", "width": 0.5791913260562043}, {"from": "Bitcoin", "to": "TRON", "width": 0.4026355039248456}, {"from": "Bitcoin", "to": "Vechain", "width": -0.6299698974778639}, {"from": "Bitcoin", "to": "WINkLink", "width": -0.11690850444237832}, {"from": "Bitcoin", "to": "XRP", "width": -0.7350261284792509}, {"from": "Bitcoin", "to": "Zcash", "width": -0.5019804084249859}, {"from": "Bitcoin", "to": "Zilliqa", "width": -1.0140088106130996}, {"from": "Bitcoin Cash", "to": "Bitcoin Gold", "width": -0.9402287870942576}, {"from": "Bitcoin Cash", "to": "Bitcoin SV", "width": 0.5026404077861122}, {"from": "Bitcoin Cash", "to": "Cardano", "width": 1.3136663728079283}, {"from": "Bitcoin Cash", "to": "Cronos", "width": -0.359767157471307}, {"from": "Bitcoin Cash", "to": "Dash", "width": 2.2982586727816194}, {"from": "Bitcoin Cash", "to": "DigiByte", "width": -0.8266848252103854}, {"from": "Bitcoin Cash", "to": "Divi", "width": -1.0378897164089025}, {"from": "Bitcoin Cash", "to": "EOS", "width": 1.2491307213062393}, {"from": "Bitcoin Cash", "to": "Enzyme", "width": -1.1411545789167052}, {"from": "Bitcoin Cash", "to": "Ethereum", "width": 0.6449658768964645}, {"from": "Bitcoin Cash", "to": "Ethereum Classic", "width": 1.3192407026693278}, {"from": "Bitcoin Cash", "to": "Litecoin", "width": 1.5449482115314526}, {"from": "Bitcoin Cash", "to": "Monero", "width": -0.772169351825029}, {"from": "Bitcoin Cash", "to": "NEM", "width": 0.7764191424044807}, {"from": "Bitcoin Cash", "to": "Neblio", "width": -0.28118226913063316}, {"from": "Bitcoin Cash", "to": "Neo", "width": -0.14516289195790777}, {"from": "Bitcoin Cash", "to": "OMG Network", "width": 0.4123044433434727}, {"from": "Bitcoin Cash", "to": "Ontology", "width": -0.037791901167014356}, {"from": "Bitcoin Cash", "to": "Qtum", "width": 1.2584550566354966}, {"from": "Bitcoin Cash", "to": "RSK Infrastructure Framework", "width": -0.5075768631325821}, {"from": "Bitcoin Cash", "to": "Status", "width": -0.34867418930565064}, {"from": "Bitcoin Cash", "to": "Stellar", "width": 0.2193958791013909}, {"from": "Bitcoin Cash", "to": "TRON", "width": 1.3944183176303162}, {"from": "Bitcoin Cash", "to": "WINkLink", "width": -0.7909032309863036}, {"from": "Bitcoin Cash", "to": "XRP", "width": -0.352984643146541}, {"from": "Bitcoin Cash", "to": "Zcash", "width": 2.4705347825535267}, {"from": "Bitcoin Diamond", "to": "Bitcoin Gold", "width": 0.2317380357019807}, {"from": "Bitcoin Diamond", "to": "Bitcoin SV", "width": 1.9017945778106748}, {"from": "Bitcoin Diamond", "to": "Dash", "width": -0.4141906901298408}, {"from": "Bitcoin Gold", "to": "Bitcoin SV", "width": 0.6285038298567116}, {"from": "Bitcoin Gold", "to": "Dash", "width": -0.19076075211110333}, {"from": "Bitcoin Gold", "to": "EOS", "width": -1.247615004250482}, {"from": "Bitcoin Gold", "to": "Ethereum Classic", "width": -0.8050083227628652}, {"from": "Bitcoin Gold", "to": "KuCoin Token", "width": -1.013095760904347}, {"from": "Bitcoin Gold", "to": "Zcash", "width": -1.279305548019872}, {"from": "Bitcoin SV", "to": "Dash", "width": 2.078233954061323}, {"from": "Bitcoin SV", "to": "EOS", "width": -0.30140894080515374}, {"from": "Bitcoin SV", "to": "Ethereum Classic", "width": 0.6635898291464971}, {"from": "Bitcoin SV", "to": "Litecoin", "width": -1.2570499834665843}, {"from": "Bitcoin SV", "to": "Qtum", "width": -1.0234582193715753}, {"from": "Bitcoin SV", "to": "Zcash", "width": 2.1990766290627755}, {"from": "Cardano", "to": "Cosmos", "width": -1.3184761265819387}, {"from": "Cardano", "to": "Cronos", "width": 1.4083558377750673}, {"from": "Cardano", "to": "Dash", "width": 0.4061634020594375}, {"from": "Cardano", "to": "Decred", "width": -0.2438467150869638}, {"from": "Cardano", "to": "DigiByte", "width": -0.0118123715897309}, {"from": "Cardano", "to": "Divi", "width": 0.0637693636516169}, {"from": "Cardano", "to": "EOS", "width": 2.0430470595622587}, {"from": "Cardano", "to": "Enzyme", "width": 0.6987429588796392}, {"from": "Cardano", "to": "Ethereum", "width": 2.40454128845873}, {"from": "Cardano", "to": "Ethereum Classic", "width": 0.02926989439711009}, {"from": "Cardano", "to": "Fantom", "width": -0.8586197977040334}, {"from": "Cardano", "to": "Fetch.ai", "width": -0.29572976961234143}, {"from": "Cardano", "to": "GXChain", "width": -0.31903283346412065}, {"from": "Cardano", "to": "Holo", "width": -0.09750259970163279}, {"from": "Cardano", "to": "IOST", "width": -0.19544489222541594}, {"from": "Cardano", "to": "IOTA", "width": 0.809882763151903}, {"from": "Cardano", "to": "KuCoin Token", "width": -0.5867274192341577}, {"from": "Cardano", "to": "Litecoin", "width": 3.0647159182243473}, {"from": "Cardano", "to": "Maker", "width": -0.8448629220184619}, {"from": "Cardano", "to": "Monero", "width": 2.009864807928396}, {"from": "Cardano", "to": "NEM", "width": -1.246577396897396}, {"from": "Cardano", "to": "Nano", "width": -1.142253877578723}, {"from": "Cardano", "to": "Neo", "width": 1.2290464829023575}, {"from": "Cardano", "to": "OMG Network", "width": 1.0323032727452714}, {"from": "Cardano", "to": "Ontology", "width": 0.9015871204992644}, {"from": "Cardano", "to": "Qtum", "width": 2.1323055934396042}, {"from": "Cardano", "to": "RSK Infrastructure Framework", "width": 0.3686118631567362}, {"from": "Cardano", "to": "Ravencoin", "width": -0.8106204362426743}, {"from": "Cardano", "to": "Status", "width": 0.9655477168243207}, {"from": "Cardano", "to": "Stellar", "width": 2.8132215429188827}, {"from": "Cardano", "to": "Streamr", "width": -1.28125636726621}, {"from": "Cardano", "to": "TRON", "width": 1.9657786865912046}, {"from": "Cardano", "to": "TomoChain", "width": -1.3755182510124813}, {"from": "Cardano", "to": "Vechain", "width": 0.060311860393082395}, {"from": "Cardano", "to": "Verge", "width": -0.31949023183089464}, {"from": "Cardano", "to": "WINkLink", "width": 1.0330053266074113}, {"from": "Cardano", "to": "XRP", "width": 1.671519370332676}, {"from": "Cardano", "to": "Zcash", "width": -0.23829060389834933}, {"from": "Cardano", "to": "Zilliqa", "width": -0.7478506879516507}, {"from": "Carry", "to": "Hedera", "width": -0.37639850758467447}, {"from": "Celer Network", "to": "Cronos", "width": -0.898618145567296}, {"from": "Celer Network", "to": "Fantom", "width": 1.1095388954741083}, {"from": "Celer Network", "to": "Fetch.ai", "width": -0.3315389946487073}, {"from": "Celer Network", "to": "IOST", "width": 1.5056065337160067}, {"from": "Celer Network", "to": "IOTA", "width": -1.33866163861005}, {"from": "Celer Network", "to": "Komodo", "width": -0.4801378438004967}, {"from": "Celer Network", "to": "OMG Network", "width": 0.15494957432034223}, {"from": "Celer Network", "to": "Ontology", "width": 0.704042656986572}, {"from": "Celer Network", "to": "Qtum", "width": -0.824435288338776}, {"from": "Celer Network", "to": "Ravencoin", "width": 0.23076846277070442}, {"from": "Celer Network", "to": "Steem", "width": 1.0017928849568072}, {"from": "Celer Network", "to": "Stellar", "width": -0.5279488251147639}, {"from": "Celer Network", "to": "Streamr", "width": -0.329336295074028}, {"from": "Celer Network", "to": "TRON", "width": 1.297023198133043}, {"from": "Celer Network", "to": "Verge", "width": 1.182631378761601}, {"from": "Celer Network", "to": "WINkLink", "width": -0.07004339782722015}, {"from": "Celer Network", "to": "XRP", "width": -0.7788811658840284}, {"from": "Celer Network", "to": "Zilliqa", "width": -1.1125434944606838}, {"from": "Chiliz", "to": "Request", "width": -0.9135339114755187}, {"from": "Chiliz", "to": "Theta Network", "width": -0.765467404242617}, {"from": "Civic", "to": "Hifi Finance", "width": 0.1948548753891495}, {"from": "Cocos BCX", "to": "Ethereum", "width": -1.2305528954143863}, {"from": "Cocos BCX", "to": "GXChain", "width": 0.7562576496278053}, {"from": "Cocos BCX", "to": "Ravencoin", "width": -0.7029361010463013}, {"from": "Cocos BCX", "to": "WINkLink", "width": -0.6701682174384473}, {"from": "Cosmos", "to": "Dent", "width": -0.8407970112951555}, {"from": "Cosmos", "to": "Fantom", "width": -0.9453681617533962}, {"from": "Cosmos", "to": "Fetch.ai", "width": -1.3135089505675668}, {"from": "Cosmos", "to": "GXChain", "width": -1.268529849456794}, {"from": "Cosmos", "to": "IOST", "width": -1.1968592267745488}, {"from": "Cosmos", "to": "IOTA", "width": -0.6518230362065616}, {"from": "Cosmos", "to": "OMG Network", "width": -1.3406907283925036}, {"from": "Cosmos", "to": "Ravencoin", "width": -1.2812801081149077}, {"from": "Cosmos", "to": "Verge", "width": -1.037140801531527}, {"from": "Cosmos", "to": "Zilliqa", "width": -0.006233527533404403}, {"from": "Cronos", "to": "EOS", "width": 0.6652643442626945}, {"from": "Cronos", "to": "Enzyme", "width": 0.024906629245098833}, {"from": "Cronos", "to": "Ethereum", "width": -1.276048714439647}, {"from": "Cronos", "to": "Ethereum Classic", "width": -1.1343247449700424}, {"from": "Cronos", "to": "Fantom", "width": -1.2815791740577347}, {"from": "Cronos", "to": "IOST", "width": 0.025243598764585217}, {"from": "Cronos", "to": "IOTA", "width": -0.6656065786847941}, {"from": "Cronos", "to": "Litecoin", "width": 1.0884087761754861}, {"from": "Cronos", "to": "Monero", "width": -0.4580339845849302}, {"from": "Cronos", "to": "Neo", "width": -0.11533707297042954}, {"from": "Cronos", "to": "OMG Network", "width": -0.15054083986428526}, {"from": "Cronos", "to": "Ontology", "width": 1.0237032236270944}, {"from": "Cronos", "to": "Qtum", "width": 1.8145662212113483}, {"from": "Cronos", "to": "Status", "width": 1.073233289329747}, {"from": "Cronos", "to": "Steem", "width": 0.14319583260456328}, {"from": "Cronos", "to": "Stellar", "width": 1.2153962951462087}, {"from": "Cronos", "to": "TRON", "width": 0.8248873614675264}, {"from": "Cronos", "to": "Vechain", "width": -0.009962598244451084}, {"from": "Cronos", "to": "Verge", "width": -0.6148977729028781}, {"from": "Cronos", "to": "WINkLink", "width": -0.1746228255266221}, {"from": "Cronos", "to": "XRP", "width": 1.3131865514576158}, {"from": "Cronos", "to": "Zilliqa", "width": -1.4067849792753513}, {"from": "Dash", "to": "EOS", "width": 0.7504080591604985}, {"from": "Dash", "to": "Ethereum", "width": 0.13996376014123468}, {"from": "Dash", "to": "Ethereum Classic", "width": 0.8968744779373603}, {"from": "Dash", "to": "Litecoin", "width": 1.123270638887708}, {"from": "Dash", "to": "NEM", "width": -0.45577309205215466}, {"from": "Dash", "to": "NKN", "width": -0.97625417978728}, {"from": "Dash", "to": "Neo", "width": -0.9777994974514944}, {"from": "Dash", "to": "OMG Network", "width": 0.025027858686539915}, {"from": "Dash", "to": "Qtum", "width": 0.03831886375871136}, {"from": "Dash", "to": "Stellar", "width": -1.2637010639834556}, {"from": "Dash", "to": "TRON", "width": -0.24078491966217835}, {"from": "Dash", "to": "Zcash", "width": 2.7557699803910873}, {"from": "Decentraland", "to": "Dent", "width": -0.49590053600147815}, {"from": "Decentraland", "to": "Dogecoin", "width": -1.1910211203044445}, {"from": "Decentraland", "to": "Fetch.ai", "width": -0.9185068596267884}, {"from": "Decentraland", "to": "IOST", "width": -1.217715557994972}, {"from": "Decentraland", "to": "Monero", "width": -0.7415195459090101}, {"from": "Decentraland", "to": "Status", "width": -0.5889229133908122}, {"from": "Decred", "to": "Request", "width": -0.831756116795732}, {"from": "Decred", "to": "Status", "width": -1.04025113143614}, {"from": "Decred", "to": "Stellar", "width": -0.8748749560466867}, {"from": "Decred", "to": "Vechain", "width": -1.24228841110371}, {"from": "Decred", "to": "Verge", "width": -1.282026711349548}, {"from": "Decred", "to": "XRP", "width": -0.3849749129830885}, {"from": "Dent", "to": "Divi", "width": -0.5668045414760523}, {"from": "Dent", "to": "Ethereum", "width": -1.3346580377812143}, {"from": "Dent", "to": "Fantom", "width": 0.396961242201097}, {"from": "Dent", "to": "Fetch.ai", "width": -0.9916054132256834}, {"from": "Dent", "to": "GXChain", "width": 1.0983951637612122}, {"from": "Dent", "to": "IOST", "width": 0.49273109973412943}, {"from": "Dent", "to": "Neo", "width": -0.9239390334754071}, {"from": "Dent", "to": "OMG Network", "width": -1.1796658912142857}, {"from": "Dent", "to": "Ontology", "width": -0.7381639552744802}, {"from": "Dent", "to": "Ravencoin", "width": -1.0177387279434984}, {"from": "Dent", "to": "Zilliqa", "width": 0.07034269181034365}, {"from": "DigiByte", "to": "EOS", "width": -0.9357084953838444}, {"from": "DigiByte", "to": "Ethereum", "width": -1.1863726394002383}, {"from": "DigiByte", "to": "Litecoin", "width": 0.06112928747984169}, {"from": "DigiByte", "to": "Monero", "width": 0.7830064929076687}, {"from": "DigiByte", "to": "NEM", "width": -0.16733744930859265}, {"from": "DigiByte", "to": "Nano", "width": 0.0850254650748124}, {"from": "DigiByte", "to": "OMG Network", "width": -1.0791482313858836}, {"from": "DigiByte", "to": "Status", "width": -0.847577940401296}, {"from": "DigiByte", "to": "Stellar", "width": -1.1835179156361928}, {"from": "Divi", "to": "EOS", "width": -0.8224249006741402}, {"from": "Divi", "to": "Ethereum", "width": -0.1711770712442009}, {"from": "Divi", "to": "Fetch.ai", "width": -1.1813518483844843}, {"from": "Divi", "to": "GXChain", "width": 0.5341595715234713}, {"from": "Divi", "to": "IOST", "width": -0.6720106931712972}, {"from": "Divi", "to": "Litecoin", "width": -0.8805939737211546}, {"from": "Divi", "to": "Monero", "width": -0.5168244625444333}, {"from": "Divi", "to": "NEM", "width": -0.8303983860242445}, {"from": "Divi", "to": "Neo", "width": 0.3311043396914329}, {"from": "Divi", "to": "Ontology", "width": -0.3339404047136862}, {"from": "Divi", "to": "Qtum", "width": -1.2484003493288491}, {"from": "Divi", "to": "RSK Infrastructure Framework", "width": -0.48294225810281394}, {"from": "Divi", "to": "Status", "width": 0.1944069094660279}, {"from": "Divi", "to": "Stellar", "width": -0.12141438907943958}, {"from": "Divi", "to": "WINkLink", "width": -0.47068768973542185}, {"from": "Divi", "to": "XRP", "width": -1.2368146907059223}, {"from": "Dogecoin", "to": "Elastos", "width": 0.8764384565462329}, {"from": "Dogecoin", "to": "IRISnet", "width": -1.1170984551651133}, {"from": "Dogecoin", "to": "NKN", "width": 0.46174948712809594}, {"from": "Dusk Network", "to": "Fantom", "width": 0.9918436823722051}, {"from": "Dusk Network", "to": "GXChain", "width": 0.7862052404029298}, {"from": "Dusk Network", "to": "IOST", "width": -0.3985020134385938}, {"from": "Dusk Network", "to": "Ontology", "width": -0.26912661715238084}, {"from": "Dusk Network", "to": "Ravencoin", "width": -0.5885856109866174}, {"from": "Dusk Network", "to": "WINkLink", "width": 0.45207916326510433}, {"from": "Dusk Network", "to": "Zilliqa", "width": -0.6758141360264306}, {"from": "EOS", "to": "Enzyme", "width": 0.2903301240494201}, {"from": "EOS", "to": "Ethereum", "width": -0.053996479790279335}, {"from": "EOS", "to": "Ethereum Classic", "width": 1.3433396998583553}, {"from": "EOS", "to": "Fetch.ai", "width": -0.3783974141840621}, {"from": "EOS", "to": "GXChain", "width": -0.7660229391465438}, {"from": "EOS", "to": "IOST", "width": -0.5781996598635815}, {"from": "EOS", "to": "IOTA", "width": 1.3101521554835125}, {"from": "EOS", "to": "KuCoin Token", "width": -0.6393549930984097}, {"from": "EOS", "to": "Litecoin", "width": 1.8572452390807943}, {"from": "EOS", "to": "Monero", "width": 0.8060125777897477}, {"from": "EOS", "to": "NEM", "width": -1.377127724958617}, {"from": "EOS", "to": "Neo", "width": 0.08690325893327802}, {"from": "EOS", "to": "OMG Network", "width": 0.7843197131868874}, {"from": "EOS", "to": "Ontology", "width": 0.16158399908191745}, {"from": "EOS", "to": "Qtum", "width": 2.6664791171289024}, {"from": "EOS", "to": "RSK Infrastructure Framework", "width": -0.9152481886576775}, {"from": "EOS", "to": "Status", "width": 0.3470490501627683}, {"from": "EOS", "to": "Steem", "width": -1.0165107149019945}, {"from": "EOS", "to": "Stellar", "width": 0.7280884651837549}, {"from": "EOS", "to": "TRON", "width": 0.7755060858115949}, {"from": "EOS", "to": "Vechain", "width": -0.1435060639430704}, {"from": "EOS", "to": "Verge", "width": 0.11300702937904043}, {"from": "EOS", "to": "WINkLink", "width": 0.09499475735876975}, {"from": "EOS", "to": "XRP", "width": 0.005052444919687796}, {"from": "EOS", "to": "Zcash", "width": 0.7412177411186456}, {"from": "EOS", "to": "Zilliqa", "width": -1.236481751849939}, {"from": "Electroneum", "to": "Litecoin", "width": -0.9916400516324044}, {"from": "Enjin Coin", "to": "ICON", "width": 0.5223901654031408}, {"from": "Enjin Coin", "to": "Metal", "width": 0.17669988439919593}, {"from": "Enjin Coin", "to": "aelf", "width": 1.6157447742715974}, {"from": "Enzyme", "to": "Ethereum", "width": -0.6154141304741076}, {"from": "Enzyme", "to": "Fetch.ai", "width": -0.7104966713335747}, {"from": "Enzyme", "to": "IOTA", "width": 0.43383829024124293}, {"from": "Enzyme", "to": "Litecoin", "width": 0.2765259110596578}, {"from": "Enzyme", "to": "Monero", "width": -0.3899528520230925}, {"from": "Enzyme", "to": "Neo", "width": -0.4762195802128679}, {"from": "Enzyme", "to": "OMG Network", "width": -1.3042355551735774}, {"from": "Enzyme", "to": "Ontology", "width": -1.3227802971693152}, {"from": "Enzyme", "to": "Qtum", "width": 1.2239573963924604}, {"from": "Enzyme", "to": "Stellar", "width": -0.406326084739759}, {"from": "Enzyme", "to": "TRON", "width": 1.585773922527766}, {"from": "Enzyme", "to": "Verge", "width": -0.9134979353804381}, {"from": "Enzyme", "to": "WINkLink", "width": -0.9296716487319722}, {"from": "Enzyme", "to": "XRP", "width": -0.5739606103203098}, {"from": "Ethereum", "to": "Fantom", "width": 0.7064474694957682}, {"from": "Ethereum", "to": "Fetch.ai", "width": -1.0897497536405247}, {"from": "Ethereum", "to": "GXChain", "width": 0.8143270249437556}, {"from": "Ethereum", "to": "Gas", "width": -0.06020144773208438}, {"from": "Ethereum", "to": "Golem", "width": -1.2655566502239908}, {"from": "Ethereum", "to": "Holo", "width": 0.8080868401801135}, {"from": "Ethereum", "to": "IOST", "width": -0.2665718602365483}, {"from": "Ethereum", "to": "IOTA", "width": -0.9909539409095127}, {"from": "Ethereum", "to": "Litecoin", "width": 2.0222506219883947}, {"from": "Ethereum", "to": "Maker", "width": -1.3849628806657983}, {"from": "Ethereum", "to": "Monero", "width": 0.4434755741470616}, {"from": "Ethereum", "to": "Neo", "width": 1.1229617301695083}, {"from": "Ethereum", "to": "OMG Network", "width": 1.0942975542851048}, {"from": "Ethereum", "to": "Ontology", "width": 0.2712835928817912}, {"from": "Ethereum", "to": "Qtum", "width": 1.094508091192038}, {"from": "Ethereum", "to": "RSK Infrastructure Framework", "width": -0.5764737920141251}, {"from": "Ethereum", "to": "Ravencoin", "width": -0.3924366073052958}, {"from": "Ethereum", "to": "Status", "width": -0.02958171532447001}, {"from": "Ethereum", "to": "Stellar", "width": 2.041272627280313}, {"from": "Ethereum", "to": "TRON", "width": 1.2689798222836226}, {"from": "Ethereum", "to": "Verge", "width": -1.3893889283522176}, {"from": "Ethereum", "to": "WINkLink", "width": 0.7732530722606705}, {"from": "Ethereum", "to": "XRP", "width": 1.364234339180625}, {"from": "Ethereum", "to": "Zcash", "width": -0.11335471080350148}, {"from": "Ethereum", "to": "Zilliqa", "width": -0.8424593476518657}, {"from": "Ethereum Classic", "to": "IOTA", "width": -0.007566926240142512}, {"from": "Ethereum Classic", "to": "Litecoin", "width": 0.9979496649356626}, {"from": "Ethereum Classic", "to": "OMG Network", "width": -0.9981899896322551}, {"from": "Ethereum Classic", "to": "Ontology", "width": -1.2880020036925792}, {"from": "Ethereum Classic", "to": "Qtum", "width": 0.7048897983406851}, {"from": "Ethereum Classic", "to": "TRON", "width": -0.7254146926222378}, {"from": "Ethereum Classic", "to": "Zcash", "width": 0.8552105453267762}, {"from": "Fantom", "to": "Fetch.ai", "width": 0.4789064574519674}, {"from": "Fantom", "to": "GXChain", "width": 1.6000861282121044}, {"from": "Fantom", "to": "Golem", "width": -1.1889729688215527}, {"from": "Fantom", "to": "Groestlcoin", "width": 0.13612476769290596}, {"from": "Fantom", "to": "Hifi Finance", "width": -1.1572812595500033}, {"from": "Fantom", "to": "Holo", "width": -0.34968930049932634}, {"from": "Fantom", "to": "IOST", "width": 2.51013513545591}, {"from": "Fantom", "to": "IOTA", "width": -1.0616913232728586}, {"from": "Fantom", "to": "Litecoin", "width": -1.133866613682033}, {"from": "Fantom", "to": "Loopring", "width": -0.4834022417571092}, {"from": "Fantom", "to": "Nano", "width": -0.9406435929729297}, {"from": "Fantom", "to": "Neo", "width": -0.9165335749017608}, {"from": "Fantom", "to": "OMG Network", "width": 1.2355282086569814}, {"from": "Fantom", "to": "Ontology", "width": 0.9395767572339678}, {"from": "Fantom", "to": "Qtum", "width": -0.6303993566756527}, {"from": "Fantom", "to": "Ravencoin", "width": 1.8904906410060098}, {"from": "Fantom", "to": "Status", "width": -1.0920529209157341}, {"from": "Fantom", "to": "Steem", "width": -0.191532847803228}, {"from": "Fantom", "to": "Stellar", "width": 1.1497261268627783}, {"from": "Fantom", "to": "Streamr", "width": 0.6288393142401206}, {"from": "Fantom", "to": "TRON", "width": 0.19274216336441508}, {"from": "Fantom", "to": "Vechain", "width": 0.13367332095061005}, {"from": "Fantom", "to": "Verge", "width": 0.38341263995966685}, {"from": "Fantom", "to": "WINkLink", "width": 1.0972515487456058}, {"from": "Fantom", "to": "XRP", "width": -0.019791781376890798}, {"from": "Fantom", "to": "Zilliqa", "width": 2.0088881286034326}, {"from": "Fetch.ai", "to": "IOST", "width": 1.174334514973072}, {"from": "Fetch.ai", "to": "IOTA", "width": 0.9875908427053998}, {"from": "Fetch.ai", "to": "Komodo", "width": 0.024514875679488013}, {"from": "Fetch.ai", "to": "Litecoin", "width": -1.3355963312513766}, {"from": "Fetch.ai", "to": "Monero", "width": -1.001831516347051}, {"from": "Fetch.ai", "to": "Nano", "width": -1.350113473333036}, {"from": "Fetch.ai", "to": "Neo", "width": -0.27293580619315816}, {"from": "Fetch.ai", "to": "OMG Network", "width": -0.24772266391696685}, {"from": "Fetch.ai", "to": "Ontology", "width": 0.3415582421338767}, {"from": "Fetch.ai", "to": "Polygon", "width": -1.1639651615611302}, {"from": "Fetch.ai", "to": "Qtum", "width": -0.3294202808821978}, {"from": "Fetch.ai", "to": "Ravencoin", "width": -0.18134450645193084}, {"from": "Fetch.ai", "to": "Request", "width": -0.7732407503116306}, {"from": "Fetch.ai", "to": "Status", "width": -0.2706502846682269}, {"from": "Fetch.ai", "to": "Steem", "width": -1.3657544444639589}, {"from": "Fetch.ai", "to": "Stellar", "width": 0.1153611360274421}, {"from": "Fetch.ai", "to": "Streamr", "width": 1.8455646461556563}, {"from": "Fetch.ai", "to": "TRON", "width": 0.20201203096905254}, {"from": "Fetch.ai", "to": "Vechain", "width": 0.0363142294300464}, {"from": "Fetch.ai", "to": "Verge", "width": 0.9223551419235155}, {"from": "Fetch.ai", "to": "WINkLink", "width": 1.0031976203890396}, {"from": "Fetch.ai", "to": "XRP", "width": -0.34769793039552344}, {"from": "Fetch.ai", "to": "Zilliqa", "width": -0.4787285995656669}, {"from": "FirmaChain", "to": "GateToken", "width": -1.3964527828604065}, {"from": "FirmaChain", "to": "Huobi Token", "width": -1.3775728697771088}, {"from": "GXChain", "to": "IOST", "width": 0.8594988491446962}, {"from": "GXChain", "to": "Litecoin", "width": -0.3388651387787512}, {"from": "GXChain", "to": "OMG Network", "width": -0.6383755684948547}, {"from": "GXChain", "to": "Ontology", "width": 0.11258276983011554}, {"from": "GXChain", "to": "Qtum", "width": -0.6873732363570277}, {"from": "GXChain", "to": "Ravencoin", "width": 0.034947554820112935}, {"from": "GXChain", "to": "Stellar", "width": -0.25497594165552023}, {"from": "GXChain", "to": "TRON", "width": -1.2497970404820595}, {"from": "GXChain", "to": "WINkLink", "width": 1.4011271958504623}, {"from": "GXChain", "to": "Zilliqa", "width": 0.8050931136944149}, {"from": "Gas", "to": "Neo", "width": 0.2670919657270994}, {"from": "Gas", "to": "Ontology", "width": -1.0533364698449734}, {"from": "Gas", "to": "TRON", "width": -1.0877342148401796}, {"from": "GateToken", "to": "Huobi Token", "width": -0.27173209163904993}, {"from": "Golem", "to": "Groestlcoin", "width": -0.34044365041590985}, {"from": "Golem", "to": "Ontology", "width": -1.2197282585340676}, {"from": "Golem", "to": "QuarkChain", "width": -1.3610710895368379}, {"from": "Groestlcoin", "to": "IOST", "width": -0.24424299385851367}, {"from": "Groestlcoin", "to": "QuarkChain", "width": 0.08651197655025722}, {"from": "Groestlcoin", "to": "Stellar", "width": -0.7632358130467536}, {"from": "Groestlcoin", "to": "Streamr", "width": -0.30850541649351587}, {"from": "Groestlcoin", "to": "XRP", "width": -1.2408549378007452}, {"from": "Hedera", "to": "Orbs", "width": 0.6539020871192999}, {"from": "Hedera", "to": "Voyager Token", "width": 0.3427471923879748}, {"from": "Hifi Finance", "to": "IOST", "width": -0.42674717391386735}, {"from": "Hifi Finance", "to": "Neo", "width": -0.9264707756858283}, {"from": "Hifi Finance", "to": "Ravencoin", "width": -0.1513149740655028}, {"from": "Hifi Finance", "to": "TRON", "width": -1.1583486416662383}, {"from": "Hifi Finance", "to": "Zilliqa", "width": -1.37500913474373}, {"from": "Hifi Finance", "to": "aelf", "width": -0.5218175093108804}, {"from": "Holo", "to": "IOST", "width": -0.7805773700785409}, {"from": "Holo", "to": "Litecoin", "width": -0.44865659236434696}, {"from": "Holo", "to": "Neo", "width": -1.1370776436588503}, {"from": "Holo", "to": "OMG Network", "width": 0.002067586075769486}, {"from": "Holo", "to": "Ravencoin", "width": -0.2938920375160747}, {"from": "Holo", "to": "Request", "width": -1.2868320038569057}, {"from": "Holo", "to": "Stellar", "width": 1.2155222103046717}, {"from": "Holo", "to": "TRON", "width": -0.6838410261470466}, {"from": "Holo", "to": "XRP", "width": 1.2117332539663674}, {"from": "Huobi Token", "to": "OKB", "width": 0.9131750867290767}, {"from": "Huobi Token", "to": "Waves", "width": -0.7327674693396016}, {"from": "ICON", "to": "Metal", "width": -0.05719368361942766}, {"from": "ICON", "to": "Wanchain", "width": 0.8339873502399939}, {"from": "ICON", "to": "aelf", "width": -1.2998828707239458}, {"from": "IOST", "to": "IOTA", "width": -0.15688045880105714}, {"from": "IOST", "to": "Komodo", "width": -0.43733063286610163}, {"from": "IOST", "to": "Litecoin", "width": -1.3444318289950394}, {"from": "IOST", "to": "Nano", "width": -0.5312319929472915}, {"from": "IOST", "to": "Neo", "width": 1.1394189627872926}, {"from": "IOST", "to": "OMG Network", "width": 0.1533887091725832}, {"from": "IOST", "to": "Ontology", "width": 2.63918392964055}, {"from": "IOST", "to": "Qtum", "width": 0.14622501703728735}, {"from": "IOST", "to": "Ravencoin", "width": 1.889557810307314}, {"from": "IOST", "to": "Status", "width": -0.6757110170658037}, {"from": "IOST", "to": "Steem", "width": 0.1436630803446493}, {"from": "IOST", "to": "Stellar", "width": 1.6683603554114461}, {"from": "IOST", "to": "Streamr", "width": 0.43456387656546225}, {"from": "IOST", "to": "TRON", "width": 1.215232362983658}, {"from": "IOST", "to": "Vechain", "width": -0.8404228406437873}, {"from": "IOST", "to": "Verge", "width": 0.4402891748143935}, {"from": "IOST", "to": "WINkLink", "width": 1.283854746880151}, {"from": "IOST", "to": "XRP", "width": 0.774026677528682}, {"from": "IOST", "to": "Zilliqa", "width": 1.9559525784261542}, {"from": "IOTA", "to": "KuCoin Token", "width": -0.3070152248346978}, {"from": "IOTA", "to": "Litecoin", "width": 0.1701023674847914}, {"from": "IOTA", "to": "Monero", "width": -0.9219230594041918}, {"from": "IOTA", "to": "Neo", "width": 0.13849868978297158}, {"from": "IOTA", "to": "OMG Network", "width": -1.2124265794831328}, {"from": "IOTA", "to": "Ontology", "width": 0.7610123226393537}, {"from": "IOTA", "to": "Polygon", "width": -1.151491813786616}, {"from": "IOTA", "to": "Qtum", "width": 0.5634622896561705}, {"from": "IOTA", "to": "Stellar", "width": -0.9202369875023584}, {"from": "IOTA", "to": "TRON", "width": 0.10765852931573426}, {"from": "IOTA", "to": "Vechain", "width": -0.5853459260977544}, {"from": "IOTA", "to": "Verge", "width": 0.37047308691457315}, {"from": "IOTA", "to": "WINkLink", "width": 0.17398970578332745}, {"from": "IOTA", "to": "XRP", "width": -1.3852768595825162}, {"from": "IOTA", "to": "Zcash", "width": -1.0501155045117982}, {"from": "IOTA", "to": "Zilliqa", "width": -0.8535291127277836}, {"from": "IRISnet", "to": "NKN", "width": 0.9915991096838513}, {"from": "IoTeX", "to": "NEM", "width": -0.5841422001145878}, {"from": "IoTeX", "to": "Terra Luna Classic", "width": 0.29592090148134464}, {"from": "IoTeX", "to": "Vechain", "width": 0.39262501372541947}, {"from": "Komodo", "to": "OMG Network", "width": -1.131710382909362}, {"from": "Komodo", "to": "Ontology", "width": 1.0321546205735117}, {"from": "Komodo", "to": "Status", "width": -0.6782957510746026}, {"from": "Komodo", "to": "Stellar", "width": -1.193933721193212}, {"from": "Komodo", "to": "Streamr", "width": 0.1239674373904154}, {"from": "Komodo", "to": "TRON", "width": -1.323245932109762}, {"from": "Komodo", "to": "Verge", "width": 0.9368384779271416}, {"from": "Komodo", "to": "XRP", "width": -1.0472176144930396}, {"from": "Komodo", "to": "Zilliqa", "width": -0.986833969991006}, {"from": "KuCoin Token", "to": "Litecoin", "width": -1.3519025932915827}, {"from": "KuCoin Token", "to": "Monero", "width": -0.27830983430652284}, {"from": "KuCoin Token", "to": "NEM", "width": -0.6258104586413052}, {"from": "KuCoin Token", "to": "Ontology", "width": -1.0984056320961724}, {"from": "KuCoin Token", "to": "RSK Infrastructure Framework", "width": -0.3954944696155455}, {"from": "Litecoin", "to": "Monero", "width": 1.3729930362567333}, {"from": "Litecoin", "to": "NKN", "width": -1.1389869716186773}, {"from": "Litecoin", "to": "Neo", "width": 0.05908150037732825}, {"from": "Litecoin", "to": "OMG Network", "width": 1.7090713604820045}, {"from": "Litecoin", "to": "Ontology", "width": 0.23009692238613016}, {"from": "Litecoin", "to": "Qtum", "width": 1.7596996896204045}, {"from": "Litecoin", "to": "RSK Infrastructure Framework", "width": -1.0073615606164064}, {"from": "Litecoin", "to": "Status", "width": 0.22459409860689641}, {"from": "Litecoin", "to": "Stellar", "width": 1.225453365373355}, {"from": "Litecoin", "to": "TRON", "width": 1.5629108830641285}, {"from": "Litecoin", "to": "Vechain", "width": -1.4110966625075392}, {"from": "Litecoin", "to": "Verge", "width": -1.2118460682373526}, {"from": "Litecoin", "to": "WINkLink", "width": 0.4673889241537725}, {"from": "Litecoin", "to": "XRP", "width": 0.5786911564007514}, {"from": "Litecoin", "to": "Zcash", "width": 0.29766196990832133}, {"from": "Loopring", "to": "iExec RLC", "width": -0.5495509126022182}, {"from": "Maker", "to": "XRP", "width": -1.2958729292920033}, {"from": "Metal", "to": "aelf", "width": 0.8979191083432059}, {"from": "Monero", "to": "Nano", "width": -0.638783490400189}, {"from": "Monero", "to": "Neo", "width": -0.01628612976516686}, {"from": "Monero", "to": "Nexo", "width": -0.9347509619208426}, {"from": "Monero", "to": "Ontology", "width": -0.12689062218238392}, {"from": "Monero", "to": "Qtum", "width": 0.19933603264761002}, {"from": "Monero", "to": "RSK Infrastructure Framework", "width": 0.6089436004612077}, {"from": "Monero", "to": "Ravencoin", "width": -1.3430919765075955}, {"from": "Monero", "to": "Status", "width": 0.18942216377355095}, {"from": "Monero", "to": "Stellar", "width": 0.8534094197617222}, {"from": "Monero", "to": "TRON", "width": -0.6016092477865165}, {"from": "Monero", "to": "Tezos", "width": -1.2363631747666892}, {"from": "Monero", "to": "WINkLink", "width": -0.843078047559785}, {"from": "Moss Coin", "to": "Utrust", "width": 0.3577857629341987}, {"from": "MovieBloc", "to": "Theta Network", "width": -0.18799939567548152}, {"from": "NEM", "to": "Neblio", "width": -1.252088495634319}, {"from": "NEM", "to": "RSK Infrastructure Framework", "width": -0.22489037271337695}, {"from": "NEM", "to": "Zcash", "width": -0.7998167175854541}, {"from": "Nano", "to": "OMG Network", "width": -1.216512081680944}, {"from": "Nano", "to": "Ontology", "width": 0.09667324964441232}, {"from": "Nano", "to": "Ravencoin", "width": -0.891614265130928}, {"from": "Nano", "to": "SingularityNET", "width": -0.7434107377929038}, {"from": "Nano", "to": "Stellar", "width": 0.09000147410631085}, {"from": "Nano", "to": "Syscoin", "width": -1.328302442173178}, {"from": "Nano", "to": "TRON", "width": -0.8323286613174946}, {"from": "Neo", "to": "OMG Network", "width": -0.46254799479561626}, {"from": "Neo", "to": "Ontology", "width": 1.587679716350838}, {"from": "Neo", "to": "Qtum", "width": 1.0794341183071863}, {"from": "Neo", "to": "Ravencoin", "width": -0.5079953995022588}, {"from": "Neo", "to": "Status", "width": 1.029872282876844}, {"from": "Neo", "to": "Stellar", "width": 1.3851948728145247}, {"from": "Neo", "to": "Streamr", "width": -1.107369540340293}, {"from": "Neo", "to": "TRON", "width": 1.1035227826458909}, {"from": "Neo", "to": "Verge", "width": -0.6107829562549989}, {"from": "Neo", "to": "WINkLink", "width": 0.21200764922509932}, {"from": "Neo", "to": "XRP", "width": 1.2069174925088724}, {"from": "Neo", "to": "Zcash", "width": -0.6711132172368708}, {"from": "Neo", "to": "Zilliqa", "width": -0.43993413171266066}, {"from": "Nexo", "to": "Tezos", "width": -1.324589513111681}, {"from": "OKB", "to": "Waves", "width": 0.13856698230054104}, {"from": "OMG Network", "to": "Ontology", "width": -0.17313710150776868}, {"from": "OMG Network", "to": "Qtum", "width": 1.5027494845332428}, {"from": "OMG Network", "to": "Ravencoin", "width": -0.3380013980972708}, {"from": "OMG Network", "to": "Status", "width": -0.23246145279425315}, {"from": "OMG Network", "to": "Steem", "width": 0.2791841082887644}, {"from": "OMG Network", "to": "Stellar", "width": 1.525585573584873}, {"from": "OMG Network", "to": "Streamr", "width": -0.9961131797955503}, {"from": "OMG Network", "to": "TRON", "width": 2.424811417262919}, {"from": "OMG Network", "to": "Vechain", "width": 0.12119600565762631}, {"from": "OMG Network", "to": "Verge", "width": 0.26915562893978523}, {"from": "OMG Network", "to": "WINkLink", "width": 0.9496479652497268}, {"from": "OMG Network", "to": "XRP", "width": 0.9709871367611024}, {"from": "OMG Network", "to": "Zcash", "width": -0.8255863123654266}, {"from": "OMG Network", "to": "Zilliqa", "width": -0.41548734644198954}, {"from": "Ontology", "to": "Qtum", "width": 0.12801108659901736}, {"from": "Ontology", "to": "Ravencoin", "width": -0.03657419695188621}, {"from": "Ontology", "to": "Status", "width": 0.15002199413742665}, {"from": "Ontology", "to": "Steem", "width": -0.762282914282228}, {"from": "Ontology", "to": "Stellar", "width": 1.4536812977909759}, {"from": "Ontology", "to": "Streamr", "width": -0.18209036914512722}, {"from": "Ontology", "to": "TRON", "width": 1.1946113843447732}, {"from": "Ontology", "to": "Verge", "width": 0.9923186354897655}, {"from": "Ontology", "to": "WINkLink", "width": 0.5140780207407565}, {"from": "Ontology", "to": "XRP", "width": 0.7871104932654746}, {"from": "Ontology", "to": "Zilliqa", "width": 0.11194796045634431}, {"from": "Orbs", "to": "Voyager Token", "width": 0.7849916017413255}, {"from": "Pax Dollar", "to": "Tether", "width": 2.116035149451655}, {"from": "Pax Dollar", "to": "TrueUSD", "width": 2.2024977063447317}, {"from": "Pax Dollar", "to": "USDK", "width": 1.307068938514949}, {"from": "Polygon", "to": "WINkLink", "width": -0.20893237446678947}, {"from": "Qtum", "to": "RSK Infrastructure Framework", "width": -1.1217478189912107}, {"from": "Qtum", "to": "Ravencoin", "width": -1.3940415055171977}, {"from": "Qtum", "to": "Status", "width": 0.21845511273073062}, {"from": "Qtum", "to": "Steem", "width": -0.9008540480297769}, {"from": "Qtum", "to": "Stellar", "width": 1.5310191518826886}, {"from": "Qtum", "to": "Streamr", "width": -1.243212367797227}, {"from": "Qtum", "to": "TRON", "width": 2.3304254566615143}, {"from": "Qtum", "to": "Vechain", "width": -0.7604431030767145}, {"from": "Qtum", "to": "Verge", "width": -0.3848156505913178}, {"from": "Qtum", "to": "WINkLink", "width": 1.0970279868233532}, {"from": "Qtum", "to": "XRP", "width": 0.573388740951467}, {"from": "Qtum", "to": "Zcash", "width": 0.7250862592384417}, {"from": "RSK Infrastructure Framework", "to": "Status", "width": -1.4036819361253552}, {"from": "RSK Infrastructure Framework", "to": "Stellar", "width": -1.3759533818670877}, {"from": "Ravencoin", "to": "Steem", "width": -0.2129960343503978}, {"from": "Ravencoin", "to": "Stellar", "width": 1.0631308175028091}, {"from": "Ravencoin", "to": "Streamr", "width": 1.3785388439355408}, {"from": "Ravencoin", "to": "TRON", "width": 0.9295076830712589}, {"from": "Ravencoin", "to": "Verge", "width": 0.3074595270949106}, {"from": "Ravencoin", "to": "WINkLink", "width": 1.2096603090708105}, {"from": "Ravencoin", "to": "XRP", "width": -1.1254593354298024}, {"from": "Ravencoin", "to": "Zilliqa", "width": 2.098990516946647}, {"from": "Request", "to": "Status", "width": -1.355452905240755}, {"from": "Request", "to": "Stellar", "width": -1.3789144597523726}, {"from": "Request", "to": "Streamr", "width": -1.1848543184661326}, {"from": "Request", "to": "XRP", "width": 0.6876639253383663}, {"from": "Siacoin", "to": "Steem", "width": -0.7005521646264669}, {"from": "Status", "to": "Steem", "width": 0.15140907816521185}, {"from": "Status", "to": "Stellar", "width": 1.7477426353371497}, {"from": "Status", "to": "Streamr", "width": -0.07705707496320406}, {"from": "Status", "to": "TRON", "width": -0.4004283990923251}, {"from": "Status", "to": "Vechain", "width": -0.34055321222459267}, {"from": "Status", "to": "Verge", "width": 0.32824126180987384}, {"from": "Status", "to": "WINkLink", "width": 0.01595347138109619}, {"from": "Status", "to": "XRP", "width": 1.825132093541288}, {"from": "Status", "to": "Zilliqa", "width": -0.9539322183482112}, {"from": "Steem", "to": "Stellar", "width": -0.08611108303080847}, {"from": "Steem", "to": "Streamr", "width": -0.8623239656643651}, {"from": "Steem", "to": "TRON", "width": 0.2618865562623274}, {"from": "Steem", "to": "Vechain", "width": 0.8870769885666818}, {"from": "Steem", "to": "Verge", "width": 1.1942288780965633}, {"from": "Steem", "to": "WINkLink", "width": -0.19291651267364754}, {"from": "Steem", "to": "XRP", "width": -0.4202167669560841}, {"from": "Steem", "to": "Zilliqa", "width": 0.2843745242916979}, {"from": "Stellar", "to": "Streamr", "width": 1.1268229531171652}, {"from": "Stellar", "to": "TRON", "width": 1.4432780215133272}, {"from": "Stellar", "to": "Vechain", "width": 0.6782396449465273}, {"from": "Stellar", "to": "Verge", "width": 0.92726465054235}, {"from": "Stellar", "to": "WINkLink", "width": 0.4437721499921192}, {"from": "Stellar", "to": "XRP", "width": 2.868878006601899}, {"from": "Stellar", "to": "Zilliqa", "width": 0.9047121858656932}, {"from": "Streamr", "to": "TRON", "width": -0.8950970138492087}, {"from": "Streamr", "to": "Vechain", "width": -0.27806043742004416}, {"from": "Streamr", "to": "Verge", "width": 2.4605890397183328}, {"from": "Streamr", "to": "WINkLink", "width": -0.3800435824747186}, {"from": "Streamr", "to": "XRP", "width": 0.012138007031267701}, {"from": "Streamr", "to": "Zilliqa", "width": 0.17976017811308467}, {"from": "TRON", "to": "Vechain", "width": -1.1436554088466555}, {"from": "TRON", "to": "Verge", "width": 0.08560012995091074}, {"from": "TRON", "to": "WINkLink", "width": 2.1393193863150817}, {"from": "TRON", "to": "XRP", "width": 0.7855531836455496}, {"from": "TRON", "to": "Zcash", "width": -0.8636392732217123}, {"from": "TRON", "to": "Zilliqa", "width": -0.6160626186879132}, {"from": "Tether", "to": "TrueUSD", "width": 2.9723614225149513}, {"from": "Tether", "to": "USDK", "width": 0.20504685236241493}, {"from": "Theta Fuel", "to": "Theta Network", "width": 0.9392220187820137}, {"from": "TomoChain", "to": "Vechain", "width": -1.2932980702222527}, {"from": "TomoChain", "to": "Zilliqa", "width": -0.40692674269295415}, {"from": "TrueUSD", "to": "USD Coin", "width": -1.35989813256271}, {"from": "TrueUSD", "to": "USDK", "width": 1.7647243387354312}, {"from": "Vechain", "to": "Verge", "width": 0.7237577054944271}, {"from": "Vechain", "to": "WINkLink", "width": -0.27959961073214257}, {"from": "Vechain", "to": "XRP", "width": 0.1855760615269559}, {"from": "Vechain", "to": "Zilliqa", "width": 0.3366330017051453}, {"from": "Verge", "to": "WINkLink", "width": -0.4329204916516835}, {"from": "Verge", "to": "XRP", "width": 0.5267605715977519}, {"from": "Verge", "to": "Zilliqa", "width": 0.6001168269330287}, {"from": "WINkLink", "to": "XRP", "width": -0.4802609551455212}, {"from": "WINkLink", "to": "Zilliqa", "width": -0.45013527320886065}, {"from": "Wanchain", "to": "aelf", "width": -0.9329018533139287}, {"from": "XRP", "to": "Zilliqa", "width": -0.8678860446544904}]);
+
+                  nodeColors = {};
+                  allNodes = nodes.get({ returnType: "Object" });
+                  for (nodeId in allNodes) {
+                    nodeColors[nodeId] = allNodes[nodeId].color;
+                  }
+                  allEdges = edges.get({ returnType: "Object" });
+                  // adding nodes and edges to the graph
+                  data = {nodes: nodes, edges: edges};
+
+                  var options = {
+    "configure": {
+        "enabled": false
+    },
+    "edges": {
+        "color": {
+            "inherit": true
+        },
+        "smooth": {
+            "enabled": true,
+            "type": "dynamic"
+        }
+    },
+    "interaction": {
+        "dragNodes": true,
+        "hideEdgesOnDrag": false,
+        "hideNodesOnDrag": false
+    },
+    "physics": {
+        "enabled": true,
+        "stabilization": {
+            "enabled": true,
+            "fit": true,
+            "iterations": 1000,
+            "onlyDynamicEdges": false,
+            "updateInterval": 50
+        }
+    }
+};
+
+                  
+
+
+                  
+
+                  network = new vis.Network(container, data, options);
+
+                  
+
+                  
+                    network.on("selectNode", neighbourhoodHighlight);
+                  
+
+                  
+
+
+                  
+                      network.on("stabilizationProgress", function(params) {
+                          document.getElementById('loadingBar').removeAttribute("style");
+                          var maxWidth = 496;
+                          var minWidth = 20;
+                          var widthFactor = params.iterations/params.total;
+                          var width = Math.max(minWidth,maxWidth * widthFactor);
+                          document.getElementById('bar').style.width = width + 'px';
+                          document.getElementById('text').innerHTML = Math.round(widthFactor*100) + '%';
+                      });
+                      network.once("stabilizationIterationsDone", function() {
+                          document.getElementById('text').innerHTML = '100%';
+                          document.getElementById('bar').style.width = '496px';
+                          document.getElementById('loadingBar').style.opacity = 0;
+                          // really clean the dom element
+                          setTimeout(function () {document.getElementById('loadingBar').style.display = 'none';}, 500);
+                      });
+                  
+
+                  return network;
+
+              }
+              drawGraph();
+        </script>
+    </body>
+</html>
