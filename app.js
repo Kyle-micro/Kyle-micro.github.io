@@ -30,7 +30,7 @@ function playDates(interval) {
     const timer = setInterval(() => {
         if (currentDate <= endDate) {
             const formattedDate = currentDate.toISOString().slice(0, 10);
-            const targetHtml = formattedDate.split("-").join("-") + ".html";
+            const targetHtml = 'Network_html/' + formattedDate.split("-").join("-") + ".html";
             window.open(targetHtml, "_blank");
 
             currentDate.setDate(currentDate.getDate() + 1);
@@ -40,6 +40,7 @@ function playDates(interval) {
         }
     }, interval);
 }
+
 
 document.getElementById("playDates").addEventListener("click", function () {
     const interval = 1000; // 時間間隔，以毫秒為單位，您可以根據需要調整此值
